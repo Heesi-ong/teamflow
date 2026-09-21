@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { TaskDetailModal } from '../components/TaskDetailModal'
 import { projectApi } from '../services/projectApi'
 import { STATUS_LABELS, TASK_STATUSES, taskApi, type Task, type TaskStatus } from '../services/taskApi'
@@ -9,9 +9,21 @@ export function KanbanBoardPage() {
   const { projectId } = useParams<{ projectId: string }>()
   const id = Number(projectId)
   const queryClient = useQueryClient()
-  const [openTaskId, setOpenTaskId] = useState<number | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  // 알림의 targetUrl(예: /projects/1/board?taskId=5)로 들어오면 해당 Task 모달을 바로 연다.
+  const [openTaskId, setOpenTaskId] = useState<number | null>(
+    searchParams.get('taskId') ? Number(searchParams.get('taskId')) : null,
+  )
   const [showCreate, setShowCreate] = useState(false)
   const [title, setTitle] = useState('')
+
+  function closeTaskModal() {
+    setOpenTaskId(null)
+    if (searchParams.has('taskId')) {
+      searchParams.delete('taskId')
+      setSearchParams(searchParams, { replace: true })
+    }
+  }
 
   const tasksQuery = useQuery({ queryKey: ['tasks', id], queryFn: () => taskApi.list(id) })
   const membersQuery = useQuery({ queryKey: ['members', id], queryFn: () => projectApi.members(id) })
@@ -110,12 +122,7 @@ export function KanbanBoardPage() {
       </div>
 
       {openTaskId && (
-        <TaskDetailModal
-          projectId={id}
-          taskId={openTaskId}
-          members={membersQuery.data ?? []}
-          onClose={() => setOpenTaskId(null)}
-        />
+        <TaskDetailModal projectId={id} taskId={openTaskId} members={membersQuery.data ?? []} onClose={closeTaskModal} />
       )}
     </main>
   )

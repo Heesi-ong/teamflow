@@ -234,20 +234,23 @@ Task를 수정하는 아래 3개 API(정보 수정/상태 변경/담당자 변�
 ## 5. Comment
 
 ### `POST /api/tasks/{taskId}/comments`
-- Description: 댓글 작성 (`@username` Mention 지원)
+- Description: 댓글 작성 (`@이름` Mention 지원 — 프로젝트 멤버의 `users.name`과 매칭, 별도 username 컬럼은 없음)
 - Permission: MEMBER 이상, GUEST(제한적)
 - Request Body: `{ content }`
 - Response 201: `TaskCommentResponse`
+- Error: `TASK_NOT_FOUND`(404), `FORBIDDEN`(403)
 
 ### `GET /api/tasks/{taskId}/comments`
 - Description: 댓글 목록 조회
 - Permission: 프로젝트 멤버
 - Response 200: `Page<TaskCommentResponse>`
+- Error: `TASK_NOT_FOUND`(404), `FORBIDDEN`(403)
 
 ### `DELETE /api/tasks/{taskId}/comments/{commentId}`
 - Description: 댓글 삭제
 - Permission: 작성자, ADMIN 이상
 - Response 204
+- Error: `TASK_NOT_FOUND`(404), `COMMENT_NOT_FOUND`(404), `FORBIDDEN`(403)
 
 ---
 
@@ -266,6 +269,7 @@ Task를 수정하는 아래 3개 API(정보 수정/상태 변경/담당자 변�
 ### `PATCH /api/notifications/{notificationId}/read`
 - Description: 알림 읽음 처리
 - Response 200: `NotificationResponse`
+- Error: `NOTIFICATION_NOT_FOUND`(404) — 본인 소유가 아닌 알림 포함
 
 ### `PATCH /api/notifications/read-all`
 - Description: 전체 읽음 처리

@@ -5,6 +5,8 @@ import com.teamflow.common.exception.ErrorCode;
 import com.teamflow.member.dto.InvitationResponse;
 import com.teamflow.member.dto.InviteRequest;
 import com.teamflow.member.dto.ProjectMemberResponse;
+import com.teamflow.notification.NotificationService;
+import com.teamflow.notification.NotificationType;
 import com.teamflow.user.UserService;
 import com.teamflow.user.UserSummary;
 import java.security.SecureRandom;
@@ -29,13 +31,15 @@ public class ProjectMemberService {
     private final ProjectMemberRepository projectMemberRepository;
     private final InvitationRepository invitationRepository;
     private final UserService userService;
+    private final NotificationService notificationService;
     private final SecureRandom random = new SecureRandom();
 
     public ProjectMemberService(ProjectMemberRepository projectMemberRepository, InvitationRepository invitationRepository,
-            UserService userService) {
+            UserService userService, NotificationService notificationService) {
         this.projectMemberRepository = projectMemberRepository;
         this.invitationRepository = invitationRepository;
         this.userService = userService;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -64,17 +68,25 @@ public class ProjectMemberService {
     @Transactional
     public Invitation invite(Long projectId, Long inviterId, InviteRequest request) {
         requireAtLeast(projectId, inviterId, ProjectRole.ADMIN);
+        Long invitedUserId = null;
         if (request.email() != null) {
-            userService.findUserIdByEmail(request.email())
-                    .filter(userId -> projectMemberRepository.existsByProjectIdAndUserId(projectId, userId))
-                    .ifPresent(userId -> {
-                        throw new BusinessException(ErrorCode.ALREADY_MEMBER);
-                    });
+            invitedUserId = userService.findUserIdByEmail(request.email()).orElse(null);
+            if (invitedUserId != null && projectMemberRepository.existsByProjectIdAndUserId(projectId, invitedUserId)) {
+                throw new BusinessException(ErrorCode.ALREADY_MEMBER);
+            }
         }
         ProjectRole role = request.role() != null ? request.role() : ProjectRole.MEMBER;
         Invitation invitation = new Invitation(projectId, request.email(), generateToken(), role, inviterId,
                 OffsetDateTime.now().plus(INVITATION_EXPIRY));
-        return invitationRepository.save(invitation);
+        invitationRepository.save(invitation);
+        // 이메일이 기존 가입 사용자와 일치할 때만 알림을 보낼 수 있다 — 링크 초대이거나
+        // 아직 가입하지 않은 이메일이면 수락 시점까지 알림 대상이 존재하지 않는다.
+        if (invitedUserId != null) {
+            String inviterName = userService.getSummary(inviterId).name();
+            notificationService.create(invitedUserId, NotificationType.PROJECT_INVITE,
+                    inviterName + "님이 프로젝트에 초대했습니다.", "/invitations/" + invitation.getToken());
+        }
+        return invitation;
     }
 
     public List<InvitationResponse> listInvitations(Long projectId, Long requesterId, InvitationStatus status) {

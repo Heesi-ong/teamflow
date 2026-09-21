@@ -11,6 +11,7 @@ import { ProjectDetailPage } from '../pages/ProjectDetailPage'
 import { ProjectMembersPage } from '../pages/ProjectMembersPage'
 import { InvitationAcceptPage } from '../pages/InvitationAcceptPage'
 import { KanbanBoardPage } from '../pages/KanbanBoardPage'
+import { NotificationBell } from '../components/NotificationBell'
 import { refreshAccessToken } from '../services/http'
 import { useAuthStore } from '../store/authStore'
 
@@ -42,6 +43,7 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
+        <NotificationBell />
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />

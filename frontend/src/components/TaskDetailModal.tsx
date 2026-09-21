@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { commentApi } from '../services/commentApi'
 import type { ProjectMember } from '../services/projectApi'
 import { taskApi, type TaskPriority } from '../services/taskApi'
 
@@ -18,11 +19,17 @@ export function TaskDetailModal({
 }) {
   const queryClient = useQueryClient()
   const [checklistInput, setChecklistInput] = useState('')
+  const [commentInput, setCommentInput] = useState('')
   const [conflict, setConflict] = useState(false)
 
   const taskQuery = useQuery({
     queryKey: ['task', projectId, taskId],
     queryFn: () => taskApi.get(projectId, taskId),
+  })
+
+  const commentsQuery = useQuery({
+    queryKey: ['comments', taskId],
+    queryFn: () => commentApi.list(taskId),
   })
 
   function invalidate() {
@@ -82,6 +89,19 @@ export function TaskDetailModal({
   const removeChecklistMutation = useMutation({
     mutationFn: (checklistId: number) => taskApi.removeChecklist(taskId, checklistId),
     onSuccess: invalidate,
+  })
+
+  const addCommentMutation = useMutation({
+    mutationFn: (content: string) => commentApi.create(taskId, content),
+    onSuccess: () => {
+      setCommentInput('')
+      queryClient.invalidateQueries({ queryKey: ['comments', taskId] })
+    },
+  })
+
+  const removeCommentMutation = useMutation({
+    mutationFn: (commentId: number) => commentApi.remove(taskId, commentId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['comments', taskId] }),
   })
 
   const task = taskQuery.data
@@ -203,6 +223,43 @@ export function TaskDetailModal({
                 />
                 <button type="submit" className="rounded bg-slate-600 px-2 py-1 text-sm text-white">
                   추가
+                </button>
+              </form>
+            </div>
+
+            <div className="mt-4">
+              <h3 className="text-sm font-semibold text-slate-700">댓글</h3>
+              <ul className="mt-1 space-y-2">
+                {commentsQuery.data?.content.map((c) => (
+                  <li key={c.id} className="rounded bg-slate-50 p-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-slate-700">{c.authorName}</span>
+                      <button
+                        onClick={() => removeCommentMutation.mutate(c.id)}
+                        className="text-xs text-red-400 hover:underline"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                    <p className="mt-1 text-slate-600">{c.content}</p>
+                  </li>
+                ))}
+              </ul>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  if (commentInput.trim()) addCommentMutation.mutate(commentInput.trim())
+                }}
+                className="mt-2 flex gap-2"
+              >
+                <input
+                  value={commentInput}
+                  onChange={(e) => setCommentInput(e.target.value)}
+                  placeholder="댓글 작성 (@이름 으로 멘션)"
+                  className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm"
+                />
+                <button type="submit" className="rounded bg-slate-600 px-2 py-1 text-sm text-white">
+                  작성
                 </button>
               </form>
             </div>

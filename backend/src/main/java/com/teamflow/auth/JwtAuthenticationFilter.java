@@ -20,6 +20,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
  */
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    // EventSource can't set custom headers, so 10-realtime-architecture.md §1.1 has the SSE
+    // subscribe endpoint carry the token as a query param instead — accepted only for this
+    // one path, to avoid widening where a token can leak via URLs/logs/referrers.
+    private static final String SSE_SUBSCRIBE_PATH = "/api/notifications/subscribe";
+
     private final JwtTokenProvider jwtTokenProvider;
 
     public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
@@ -29,9 +34,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        String header = request.getHeader("Authorization");
-        if (header != null && header.startsWith("Bearer ")) {
-            Claims claims = jwtTokenProvider.parseClaims(header.substring("Bearer ".length()));
+        String token = resolveToken(request);
+        if (token != null) {
+            Claims claims = jwtTokenProvider.parseClaims(token);
             if (claims != null) {
                 UserPrincipal principal = new UserPrincipal(jwtTokenProvider.getUserId(claims), claims.get("email", String.class));
                 var authentication = new UsernamePasswordAuthenticationToken(principal, null, List.of());
@@ -39,5 +44,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    private String resolveToken(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header != null && header.startsWith("Bearer ")) {
+            return header.substring("Bearer ".length());
+        }
+        if (SSE_SUBSCRIBE_PATH.equals(request.getServletPath())) {
+            return request.getParameter("token");
+        }
+        return null;
     }
 }

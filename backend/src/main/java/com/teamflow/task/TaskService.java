@@ -8,6 +8,8 @@ import com.teamflow.common.exception.ErrorCode;
 import com.teamflow.member.ProjectMember;
 import com.teamflow.member.ProjectMemberService;
 import com.teamflow.member.ProjectRole;
+import com.teamflow.notification.NotificationService;
+import com.teamflow.notification.NotificationType;
 import com.teamflow.task.dto.TaskAssigneeUpdateRequest;
 import com.teamflow.task.dto.TaskChecklistResponse;
 import com.teamflow.task.dto.TaskCreateRequest;
@@ -32,15 +34,17 @@ public class TaskService {
     private final TaskAssigneeRepository taskAssigneeRepository;
     private final TaskChecklistRepository taskChecklistRepository;
     private final ProjectMemberService projectMemberService;
+    private final NotificationService notificationService;
     private final ApplicationEventPublisher eventPublisher;
 
     public TaskService(TaskRepository taskRepository, TaskAssigneeRepository taskAssigneeRepository,
             TaskChecklistRepository taskChecklistRepository, ProjectMemberService projectMemberService,
-            ApplicationEventPublisher eventPublisher) {
+            NotificationService notificationService, ApplicationEventPublisher eventPublisher) {
         this.taskRepository = taskRepository;
         this.taskAssigneeRepository = taskAssigneeRepository;
         this.taskChecklistRepository = taskChecklistRepository;
         this.projectMemberService = projectMemberService;
+        this.notificationService = notificationService;
         this.eventPublisher = eventPublisher;
     }
 
@@ -56,6 +60,9 @@ public class TaskService {
         if (request.assigneeId() != null) {
             taskAssigneeRepository.save(new TaskAssignee(task.getId(), request.assigneeId()));
             assigneeId = request.assigneeId();
+            if (!assigneeId.equals(authorId)) {
+                notifyAssigned(task, assigneeId);
+            }
         }
         eventPublisher.publishEvent(new TaskCreatedEvent(projectId, authorId, task.getId(), task.getTitle()));
         return TaskResponse.from(task, assigneeId);
@@ -95,6 +102,12 @@ public class TaskService {
         task.changeStatus(request.status());
         eventPublisher.publishEvent(
                 new TaskStatusChangedEvent(projectId, userId, taskId, task.getTitle(), before.name(), request.status().name()));
+        // 03-functional-specification.md §3.8: "담당자 외 관련자에게 Notification 생성" — 작성자에게 알린다.
+        if (!task.getAuthorId().equals(userId)) {
+            notificationService.create(task.getAuthorId(), NotificationType.TASK_STATUS_CHANGED,
+                    "\"" + task.getTitle() + "\" 상태가 " + before + " → " + request.status() + "(으)로 변경되었습니다.",
+                    taskTargetUrl(projectId, taskId));
+        }
         return TaskResponse.from(task, currentAssignee(taskId));
     }
 
@@ -108,6 +121,9 @@ public class TaskService {
         }
         taskAssigneeRepository.deleteByTaskId(taskId);
         taskAssigneeRepository.save(new TaskAssignee(taskId, request.assigneeId()));
+        if (!request.assigneeId().equals(userId)) {
+            notifyAssigned(task, request.assigneeId());
+        }
         return TaskResponse.from(task, request.assigneeId());
     }
 
@@ -144,6 +160,15 @@ public class TaskService {
         if (!(isAuthor || member.getRole().isAtLeast(ProjectRole.ADMIN))) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
+    }
+
+    private void notifyAssigned(Task task, Long assigneeId) {
+        notificationService.create(assigneeId, NotificationType.TASK_ASSIGNED,
+                "\"" + task.getTitle() + "\" Task의 담당자로 지정되었습니다.", taskTargetUrl(task.getProjectId(), task.getId()));
+    }
+
+    private String taskTargetUrl(Long projectId, Long taskId) {
+        return "/projects/" + projectId + "/board?taskId=" + taskId;
     }
 
     private Long currentAssignee(Long taskId) {
