@@ -35,6 +35,7 @@ public enum ErrorCode {
     TASK_NOT_FOUND(HttpStatus.NOT_FOUND, "Task를 찾을 수 없습니다."),
     INVALID_TASK_STATUS(HttpStatus.BAD_REQUEST, "Task 상태 값이 올바르지 않습니다."),
     TASK_VERSION_CONFLICT(HttpStatus.CONFLICT, "다른 사용자가 먼저 이 Task를 수정했습니다. 다시 조회한 뒤 시도하세요."),
+    CHECKLIST_NOT_FOUND(HttpStatus.NOT_FOUND, "Checklist 항목을 찾을 수 없습니다."),
 
     // File
     INVALID_FILE(HttpStatus.BAD_REQUEST, "허용되지 않는 파일 형식이거나 크기 제한을 초과했습니다.");

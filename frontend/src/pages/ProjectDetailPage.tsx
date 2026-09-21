@@ -27,12 +27,14 @@ export function ProjectDetailPage() {
           <p className="mt-2 text-sm text-slate-400">
             {data.startDate ?? '?'} ~ {data.endDate ?? '?'}
           </p>
-          <Link
-            to={`/projects/${data.id}/members`}
-            className="mt-4 inline-block rounded bg-slate-600 px-3 py-2 text-white"
-          >
-            팀원 관리
-          </Link>
+          <div className="mt-4 flex gap-2">
+            <Link to={`/projects/${data.id}/board`} className="inline-block rounded bg-blue-600 px-3 py-2 text-white">
+              Kanban Board
+            </Link>
+            <Link to={`/projects/${data.id}/members`} className="inline-block rounded bg-slate-600 px-3 py-2 text-white">
+              팀원 관리
+            </Link>
+          </div>
         </div>
       )}
     </main>

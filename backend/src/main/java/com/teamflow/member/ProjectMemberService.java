@@ -53,6 +53,10 @@ public class ProjectMemberService {
         return member;
     }
 
+    public boolean isMember(Long projectId, Long userId) {
+        return projectMemberRepository.existsByProjectIdAndUserId(projectId, userId);
+    }
+
     public List<Long> findProjectIdsByUser(Long userId) {
         return projectMemberRepository.findByUserId(userId).stream().map(ProjectMember::getProjectId).toList();
     }

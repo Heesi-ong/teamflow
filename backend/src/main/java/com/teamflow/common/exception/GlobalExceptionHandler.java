@@ -3,6 +3,7 @@ package com.teamflow.common.exception;
 import java.time.OffsetDateTime;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -35,6 +36,13 @@ public class GlobalExceptionHandler {
                 .toList();
         return ResponseEntity.status(ErrorCode.INVALID_REQUEST.getStatus())
                 .body(ErrorResponse.of(ErrorCode.INVALID_REQUEST, fieldErrors));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleUnreadableBody(HttpMessageNotReadableException ex) {
+        // Malformed JSON or an invalid enum literal (e.g. status: "BOGUS") lands here before
+        // it ever reaches @Valid — without this it fell through to the generic 500 below.
+        return ResponseEntity.status(ErrorCode.INVALID_REQUEST.getStatus()).body(ErrorResponse.of(ErrorCode.INVALID_REQUEST));
     }
 
     @ExceptionHandler(Exception.class)

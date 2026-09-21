@@ -214,17 +214,20 @@ Task를 수정하는 아래 3개 API(정보 수정/상태 변경/담당자 변�
 - Permission: MEMBER 이상
 - Request Body: `{ content }`
 - Response 201: `TaskChecklistResponse`
+- Error: `TASK_NOT_FOUND`(404), `FORBIDDEN`(403)
 
 ### `PATCH /api/tasks/{taskId}/checklists/{checklistId}`
 - Description: Checklist 완료 상태/내용 수정
 - Permission: MEMBER 이상
 - Request Body: `{ content?, isDone? }`
 - Response 200: `TaskChecklistResponse`
+- Error: `TASK_NOT_FOUND`(404), `CHECKLIST_NOT_FOUND`(404), `FORBIDDEN`(403)
 
 ### `DELETE /api/tasks/{taskId}/checklists/{checklistId}`
 - Description: Checklist 삭제
 - Permission: MEMBER 이상
 - Response 204
+- Error: `TASK_NOT_FOUND`(404), `CHECKLIST_NOT_FOUND`(404), `FORBIDDEN`(403)
 
 ---
 

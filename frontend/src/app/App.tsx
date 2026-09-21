@@ -10,6 +10,7 @@ import { ProjectCreatePage } from '../pages/ProjectCreatePage'
 import { ProjectDetailPage } from '../pages/ProjectDetailPage'
 import { ProjectMembersPage } from '../pages/ProjectMembersPage'
 import { InvitationAcceptPage } from '../pages/InvitationAcceptPage'
+import { KanbanBoardPage } from '../pages/KanbanBoardPage'
 import { refreshAccessToken } from '../services/http'
 import { useAuthStore } from '../store/authStore'
 
@@ -49,6 +50,7 @@ export function App() {
           <Route path="/projects" element={<ProjectListPage />} />
           <Route path="/projects/new" element={<ProjectCreatePage />} />
           <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
+          <Route path="/projects/:projectId/board" element={<KanbanBoardPage />} />
           <Route path="/projects/:projectId/members" element={<ProjectMembersPage />} />
           <Route path="/invitations/:token" element={<InvitationAcceptPage />} />
         </Routes>
