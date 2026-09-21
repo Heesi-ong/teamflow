@@ -2,6 +2,8 @@
 
 웹 기반 팀 프로젝트 협업 플랫폼 — Task, 일정, 문서, 파일, 댓글, 실시간 알림, 채팅, 진행률 통계를 하나의 서비스로 통합 관리합니다.
 
+**배포**: 아직 배포 전입니다 — Phase 10(Deployment/Monitoring)에서 진행 예정입니다. 상세는 [20-development-roadmap.md](./docs/20-development-roadmap.md) 참고.
+
 > 본 프로젝트는 기업 취업 포트폴리오용 개인 프로젝트이며, 단순 CRUD를 넘어 실무 환경에서 요구되는 인증/인가, 실시간 통신, 캐싱, 파일 업로드, 테스트 자동화, CI/CD, 모니터링을 통합적으로 다룹니다. 상세 설계는 [docs/](./docs) 디렉터리의 20개 기준 문서(Source of Truth)를 참고하세요.
 
 ## Problem
