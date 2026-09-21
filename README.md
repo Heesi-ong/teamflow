@@ -223,25 +223,27 @@ project-root/
 │   ├── 19-logging-audit-policy.md
 │   ├── 20-development-roadmap.md
 │   └── diagrams/wireframes/           화면 설계 목업 이미지 (06번 문서 8장에서 참조)
-├── backend/                           Spring Boot (Modular Monolith) — 상태: Planned
-├── frontend/                          React + Vite — 상태: Planned
-├── docker-compose.dev.yml             상태: Planned
+├── backend/                           Spring Boot (Modular Monolith) — Phase 1 스캐폴딩 완료
+│   └── src/main/java/com/teamflow/    auth/user/project/member/task/comment/notification/
+│                                      chat/document/file/activity/common 12개 Domain Package
+├── frontend/                          React + Vite — Phase 1 스캐폴딩 완료
+├── docker-compose.dev.yml             PostgreSQL 16 + Redis 7 (로컬 개발용)
 ├── docker-compose.prod.yml            상태: Planned
 └── README.md
 ```
 
 ## How to Run
 
-> 실제 소스 디렉터리(`backend/`, `frontend/`)는 아직 구현 전(Planned)이며, 아래는 [13-infrastructure-design.md](./docs/13-infrastructure-design.md) 기준의 실행 절차입니다.
+Phase 1(초기 설정) 기준 스캐폴딩까지 구현되어 있습니다. Backend는 Health Check(Actuator)만 응답하며, 실제 도메인 API는 Phase 2부터 추가됩니다.
 
 ```bash
 # 1. 인프라(PostgreSQL, Redis) 기동
 docker compose -f docker-compose.dev.yml up -d
 
-# 2. Backend 실행
+# 2. Backend 실행 (Java 17) — http://localhost:8080/actuator/health
 cd backend && ./gradlew bootRun
 
-# 3. Frontend 실행
+# 3. Frontend 실행 — http://localhost:5173
 cd frontend && npm install && npm run dev
 ```
 
