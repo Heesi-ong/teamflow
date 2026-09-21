@@ -223,10 +223,10 @@ project-root/
 │   ├── 19-logging-audit-policy.md
 │   ├── 20-development-roadmap.md
 │   └── diagrams/wireframes/           화면 설계 목업 이미지 (06번 문서 8장에서 참조)
-├── backend/                           Spring Boot (Modular Monolith) — Phase 2(Authentication) 완료
+├── backend/                           Spring Boot (Modular Monolith) — Phase 3(Project/Member) 완료
 │   └── src/main/java/com/teamflow/    auth/user/project/member/task/comment/notification/
 │                                      chat/document/file/activity/common 12개 Domain Package
-├── frontend/                          React + Vite — Phase 2(Authentication) 완료
+├── frontend/                          React + Vite — Phase 3(Project/Member) 완료
 ├── docker-compose.dev.yml             PostgreSQL 16 + Redis 7 (로컬 개발용)
 ├── docker-compose.prod.yml            상태: Planned
 └── README.md
@@ -234,7 +234,7 @@ project-root/
 
 ## How to Run
 
-Phase 2(Authentication) 기준까지 구현되어 있습니다. 회원가입/로그인/로그아웃, JWT 발급·재발급(Refresh Token Rotation)이 동작하며, Health Check(Actuator) 외 첫 도메인 API로 `GET /api/users/me`가 추가되었습니다. 나머지 도메인 API는 Phase 3부터 추가됩니다.
+Phase 3(Project/Member) 기준까지 구현되어 있습니다. 회원가입/로그인/로그아웃/JWT 재발급에 이어 프로젝트 생성·조회·수정·삭제(Soft Delete), 팀원 초대(이메일/링크)·수락, Role 관리(변경/소유권 위임), 프로젝트 단위 RBAC 권한 검증이 동작합니다. Task/Kanban 등 나머지 도메인 API는 Phase 4부터 추가됩니다.
 
 ```bash
 # 1. 인프라(PostgreSQL, Redis) 기동

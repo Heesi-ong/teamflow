@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { authApi } from '../services/authApi'
 import { useAuthStore } from '../store/authStore'
 
@@ -28,6 +28,9 @@ export function DashboardPage() {
           {data.name}님 ({data.email}) 환영합니다.
         </p>
       )}
+      <Link to="/projects" className="rounded bg-blue-600 px-3 py-2 text-white">
+        내 프로젝트
+      </Link>
       <button onClick={handleLogout} className="rounded bg-slate-600 px-3 py-2 text-white">
         로그아웃
       </button>

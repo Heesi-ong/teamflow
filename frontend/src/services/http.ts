@@ -18,7 +18,7 @@ http.interceptors.request.use((config) => {
 
 let refreshPromise: Promise<string | null> | null = null
 
-async function refreshAccessToken(): Promise<string | null> {
+export async function refreshAccessToken(): Promise<string | null> {
   refreshPromise ??= axios
     .post<{ accessToken: string }>('/api/auth/refresh', null, { withCredentials: true })
     .then((res) => res.data.accessToken)
