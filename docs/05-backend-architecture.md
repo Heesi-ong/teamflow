@@ -44,7 +44,7 @@ task/
 | task | Task/Checklist/Assignee 관리 | project, member, notification, activity, common |
 | comment | Task 댓글, Mention 파싱 | task, member, notification, activity, common |
 | notification | Notification 생성/조회/SSE 전송 | user, common (Redis) |
-| chat | 프로젝트 채팅(WebSocket), 채팅 이력 | project, member, common |
+| chat | 프로젝트 채팅(WebSocket), 채팅 이력 | project, member, auth, common |
 | document | 프로젝트 문서 CRUD | project, member, file, common |
 | file | S3 Presigned URL 발급, 파일 메타데이터 관리 | project, member, common |
 | activity | ActivityLog 기록/조회 | project, common |

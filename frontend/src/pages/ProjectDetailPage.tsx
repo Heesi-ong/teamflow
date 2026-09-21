@@ -31,6 +31,9 @@ export function ProjectDetailPage() {
             <Link to={`/projects/${data.id}/board`} className="inline-block rounded bg-blue-600 px-3 py-2 text-white">
               Kanban Board
             </Link>
+            <Link to={`/projects/${data.id}/chat`} className="inline-block rounded bg-blue-600 px-3 py-2 text-white">
+              채팅
+            </Link>
             <Link to={`/projects/${data.id}/members`} className="inline-block rounded bg-slate-600 px-3 py-2 text-white">
               팀원 관리
             </Link>

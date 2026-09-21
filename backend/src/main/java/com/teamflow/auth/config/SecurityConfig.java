@@ -33,6 +33,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/api/auth/signup", "/api/auth/login", "/api/auth/refresh")
                         .permitAll()
+                        // 10-realtime-architecture.md §2.1: 브라우저 WebSocket 핸드셰이크는 커스텀 헤더를
+                        // 못 보내므로 HTTP 계층은 열어두고, 실제 인증은 STOMP CONNECT 프레임에서 수행한다
+                        // (StompAuthChannelInterceptor).
+                        .requestMatchers("/ws/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);

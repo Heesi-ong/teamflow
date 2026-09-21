@@ -281,7 +281,7 @@ Task를 수정하는 아래 3개 API(정보 수정/상태 변경/담당자 변�
 
 ### `WS /ws/chat`
 - Description: 프로젝트 채팅 WebSocket 연결 (STOMP 기반, 구독 destination: `/topic/projects/{projectId}/chat`, 발행 destination: `/app/projects/{projectId}/chat.send`)
-- Authentication: 연결 시 Access Token(Query Parameter 또는 STOMP CONNECT header)
+- Authentication: STOMP CONNECT 프레임의 `Authorization` 헤더로 Access Token 전달 ([10-realtime-architecture.md](./10-realtime-architecture.md) §2.1 — HTTP 핸드셰이크 자체는 인증 없이 열려 있고, 실제 인증은 CONNECT 프레임에서 이루어진다)
 
 ### `GET /api/projects/{projectId}/chat/messages`
 - Description: 채팅 이력 조회

@@ -223,10 +223,10 @@ project-root/
 │   ├── 19-logging-audit-policy.md
 │   ├── 20-development-roadmap.md
 │   └── diagrams/wireframes/           화면 설계 목업 이미지 (06번 문서 8장에서 참조)
-├── backend/                           Spring Boot (Modular Monolith) — Phase 5(Comment/Notification) 완료
+├── backend/                           Spring Boot (Modular Monolith) — Phase 6(Chat) 완료
 │   └── src/main/java/com/teamflow/    auth/user/project/member/task/comment/notification/
 │                                      chat/document/file/activity/common 12개 Domain Package
-├── frontend/                          React + Vite — Phase 5(Comment/Notification) 완료
+├── frontend/                          React + Vite — Phase 6(Chat) 완료
 ├── docker-compose.dev.yml             PostgreSQL 16 + Redis 7 (로컬 개발용)
 ├── docker-compose.prod.yml            상태: Planned
 └── README.md
@@ -234,7 +234,7 @@ project-root/
 
 ## How to Run
 
-Phase 5(Comment/Notification) 기준까지 구현되어 있습니다. Task 댓글(`@이름` Mention 지원)과 실시간 알림(SSE + Redis Pub/Sub, 알림 뱃지/드롭다운)이 동작하며, 팀원 초대·Task 담당자 지정·상태 변경·Mention 시 알림이 생성됩니다. Chat/Document/File/Dashboard 등 나머지 도메인 API는 Phase 6부터 추가됩니다.
+Phase 6(Chat) 기준까지 구현되어 있습니다. 프로젝트 채팅(WebSocket/STOMP, `/topic/projects/{id}/chat` 구독·`/app/projects/{id}/chat.send` 발행)과 채팅 이력 조회가 동작하며, 비멤버의 구독/발행은 서버에서 거부됩니다. Document/File/Dashboard 등 나머지 도메인 API는 Phase 7부터 추가됩니다.
 
 ```bash
 # 1. 인프라(PostgreSQL, Redis) 기동
