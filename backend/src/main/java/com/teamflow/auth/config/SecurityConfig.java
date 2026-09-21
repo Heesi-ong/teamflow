@@ -1,5 +1,7 @@
-package com.teamflow.common.config;
+package com.teamflow.auth.config;
 
+import com.teamflow.auth.JwtAuthenticationFilter;
+import com.teamflow.auth.JwtTokenProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -10,18 +12,18 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
- * Baseline security setup for Phase 1 (scaffolding only): stateless
- * sessions, no default login form, /actuator/health and /api/auth/**
- * open. The JWT filter itself is added in Phase 2
- * (09-authentication-authorization.md).
+ * Per 09-authentication-authorization.md §1: stateless sessions,
+ * JwtAuthenticationFilter registered before UsernamePasswordAuthenticationFilter,
+ * only signup/login/refresh open (logout needs an authenticated principal).
  */
 @Configuration
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtTokenProvider jwtTokenProvider) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -29,9 +31,11 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .exceptionHandling(handling -> handling.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/health", "/api/auth/**").permitAll()
+                        .requestMatchers("/actuator/health", "/api/auth/signup", "/api/auth/login", "/api/auth/refresh")
+                        .permitAll()
                         .anyRequest().authenticated()
-                );
+                )
+                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 

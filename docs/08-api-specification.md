@@ -23,13 +23,13 @@ Base URL: `/api`. 별도 명시가 없는 한 모든 API는 인증(Bearer Access
 - Description: 로그인
 - Authentication: 불필요
 - Request Body: `{ email, password }`
-- Response 200: `{ accessToken, refreshToken, accessTokenExpiresIn }`
+- Response 200: `{ accessToken, accessTokenExpiresIn }` + `Set-Cookie: refreshToken=...`(HttpOnly)
 - Error: `INVALID_CREDENTIALS`(401)
 
 ### `POST /api/auth/refresh`
-- Description: Access Token 재발급
-- Authentication: Refresh Token (Cookie 또는 Body)
-- Response 200: `{ accessToken, refreshToken }`
+- Description: Access Token 재발급 (Refresh Token Rotation)
+- Authentication: Refresh Token (HttpOnly Cookie)
+- Response 200: `{ accessToken, accessTokenExpiresIn }` + `Set-Cookie: refreshToken=...`(HttpOnly, 회전된 새 값)
 - Error: `INVALID_REFRESH_TOKEN`(401)
 
 ### `POST /api/auth/logout`
@@ -41,6 +41,12 @@ Base URL: `/api`. 별도 명시가 없는 한 모든 API는 인증(Bearer Access
 ---
 
 ## 1-1. User (Profile)
+
+### `GET /api/users/me`
+- Description: 로그인한 사용자 본인 정보 조회
+- Permission: 로그인 사용자
+- Response 200: `{ id, email, name, profileImageUrl }`
+- Error: `UNAUTHORIZED`(401)
 
 ### `POST /api/users/me/profile-image/presigned-url`
 - Description: 프로필 이미지 업로드용 Presigned URL 발급 ([11-file-storage-design.md](./11-file-storage-design.md)와 동일한 Presigned URL 방식)

@@ -23,6 +23,11 @@ management:
     health:
       show-details: never
 
+teamflow:
+  jwt:
+    access-token-expiry-minutes: 30
+    refresh-token-expiry-days: 14
+
 ---
 # 로컬 개발: docker-compose.dev.yml로 띄운 PostgreSQL/Redis에 연결 (13-infrastructure-design.md)
 spring:
@@ -38,6 +43,13 @@ spring:
       host: localhost
       port: 6380
 
+teamflow:
+  jwt:
+    # 로컬 개발 전용 키. dev/prod는 JWT_SECRET 환경변수로 주입한다.
+    secret: 07fxKSVP9sUDhQOtF19DeUYyqWqwGbWntLoajz2K+3LG9y2EuL5lAh4cDU8F6JEo
+    # 로컬은 http로 접속하므로 Secure 쿠키가 전송되지 않는다 — 로컬에서만 끈다.
+    cookie-secure: false
+
 ---
 spring:
   config:
@@ -51,6 +63,10 @@ spring:
     redis:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT:6379}
+
+teamflow:
+  jwt:
+    secret: ${JWT_SECRET}
 
 ---
 spring:
@@ -68,3 +84,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
+
+teamflow:
+  jwt:
+    secret: ${JWT_SECRET}
