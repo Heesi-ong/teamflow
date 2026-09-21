@@ -223,22 +223,25 @@ project-root/
 │   ├── 19-logging-audit-policy.md
 │   ├── 20-development-roadmap.md
 │   └── diagrams/wireframes/           화면 설계 목업 이미지 (06번 문서 8장에서 참조)
-├── backend/                           Spring Boot (Modular Monolith) — Phase 6(Chat) 완료
+├── backend/                           Spring Boot (Modular Monolith) — Phase 7(Document/File) 완료
 │   └── src/main/java/com/teamflow/    auth/user/project/member/task/comment/notification/
 │                                      chat/document/file/activity/common 12개 Domain Package
-├── frontend/                          React + Vite — Phase 6(Chat) 완료
-├── docker-compose.dev.yml             PostgreSQL 16 + Redis 7 (로컬 개발용)
+├── frontend/                          React + Vite — Phase 7(Document/File) 완료
+├── docker-compose.dev.yml             PostgreSQL 16 + Redis 7 + MinIO(S3 호환, 로컬 개발용)
 ├── docker-compose.prod.yml            상태: Planned
 └── README.md
 ```
 
 ## How to Run
 
-Phase 6(Chat) 기준까지 구현되어 있습니다. 프로젝트 채팅(WebSocket/STOMP, `/topic/projects/{id}/chat` 구독·`/app/projects/{id}/chat.send` 발행)과 채팅 이력 조회가 동작하며, 비멤버의 구독/발행은 서버에서 거부됩니다. Document/File/Dashboard 등 나머지 도메인 API는 Phase 7부터 추가됩니다.
+Phase 7(Document/File) 기준까지 구현되어 있습니다. 프로젝트 문서 CRUD와 S3 Presigned URL 기반 파일 업로드/다운로드(Task 첨부 포함)가 동작합니다. 운영은 AWS S3를 쓰고, 로컬 개발은 `docker-compose.dev.yml`의 MinIO(S3 호환)를 같은 AWS SDK 코드 경로로 그대로 사용합니다. Dashboard 등 나머지 도메인 API는 Phase 8부터 추가됩니다.
 
 ```bash
-# 1. 인프라(PostgreSQL, Redis) 기동
+# 1. 인프라(PostgreSQL, Redis, MinIO) 기동
 docker compose -f docker-compose.dev.yml up -d
+# 최초 1회: MinIO에 로컬 개발용 버킷 생성
+docker exec <minio 컨테이너> mc alias set local http://localhost:9000 teamflow teamflow_local
+docker exec <minio 컨테이너> mc mb local/teamflow-dev
 
 # 2. Backend 실행 (Java 17) — http://localhost:8080/actuator/health
 cd backend && ./gradlew bootRun

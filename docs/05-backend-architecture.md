@@ -46,7 +46,7 @@ task/
 | notification | Notification 생성/조회/SSE 전송 | user, common (Redis) |
 | chat | 프로젝트 채팅(WebSocket), 채팅 이력 | project, member, auth, common |
 | document | 프로젝트 문서 CRUD | project, member, file, common |
-| file | S3 Presigned URL 발급, 파일 메타데이터 관리 | project, member, common |
+| file | S3 Presigned URL 발급, 파일 메타데이터 관리 | project, member, task, common |
 | activity | ActivityLog 기록/조회 | project, common |
 
 의존 방향은 항상 "하위 Domain → 공용 Domain"으로 흐르며, 순환 의존을 금지한다. 예: `task`는 `notification`을 호출할 수 있지만 `notification`은 `task`를 알지 못한다 (Event 기반으로 결합도를 낮춘다, 3.1 참고).

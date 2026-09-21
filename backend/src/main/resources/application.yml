@@ -49,6 +49,14 @@ teamflow:
     secret: 07fxKSVP9sUDhQOtF19DeUYyqWqwGbWntLoajz2K+3LG9y2EuL5lAh4cDU8F6JEo
     # 로컬은 http로 접속하므로 Secure 쿠키가 전송되지 않는다 — 로컬에서만 끈다.
     cookie-secure: false
+  s3:
+    # 11-file-storage-design.md: 운영은 AWS S3, 로컬은 docker-compose.dev.yml의 MinIO(S3 호환)를 쓴다.
+    bucket: teamflow-dev
+    region: us-east-1
+    endpoint: http://localhost:9100
+    access-key: teamflow
+    secret-key: teamflow_local
+    path-style-access: true
 
 ---
 spring:
@@ -67,6 +75,12 @@ spring:
 teamflow:
   jwt:
     secret: ${JWT_SECRET}
+  s3:
+    bucket: ${S3_BUCKET}
+    region: ${S3_REGION:ap-northeast-2}
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}
+    path-style-access: false
 
 ---
 spring:
@@ -88,3 +102,9 @@ spring:
 teamflow:
   jwt:
     secret: ${JWT_SECRET}
+  s3:
+    bucket: ${S3_BUCKET}
+    region: ${S3_REGION:ap-northeast-2}
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}
+    path-style-access: false

@@ -298,51 +298,69 @@ Task를 수정하는 아래 3개 API(정보 수정/상태 변경/담당자 변�
 - Permission: MEMBER 이상
 - Request Body: `{ title, content }`
 - Response 201: `DocumentResponse`
+- Error: `FORBIDDEN`(403)
 
 ### `GET /api/projects/{projectId}/documents`
 - Description: 문서 목록 조회
+- Permission: 프로젝트 멤버
 - Response 200: `Page<DocumentSummaryResponse>`
+- Error: `FORBIDDEN`(403)
 
 ### `GET /api/projects/{projectId}/documents/{documentId}`
 - Description: 문서 상세 조회
+- Permission: 프로젝트 멤버
 - Response 200: `DocumentResponse`
+- Error: `DOCUMENT_NOT_FOUND`(404), `FORBIDDEN`(403)
 
 ### `PATCH /api/projects/{projectId}/documents/{documentId}`
 - Description: 문서 수정
 - Permission: 작성자, ADMIN 이상
 - Request Body: `{ title?, content? }`
 - Response 200: `DocumentResponse`
+- Error: `DOCUMENT_NOT_FOUND`(404), `FORBIDDEN`(403)
 
 ### `DELETE /api/projects/{projectId}/documents/{documentId}`
 - Description: 문서 삭제
 - Permission: 작성자, ADMIN 이상
 - Response 204
+- Error: `DOCUMENT_NOT_FOUND`(404), `FORBIDDEN`(403)
 
 ---
 
 ## 9. File
 
 ### `POST /api/projects/{projectId}/files/presigned-url`
-- Description: S3 업로드용 Presigned URL 발급
+- Description: S3 업로드용 Presigned URL 발급 (TTL 5분, [11-file-storage-design.md](./11-file-storage-design.md) §4)
 - Permission: MEMBER 이상
 - Request Body: `{ fileName, contentType, fileSize }`
 - Response 200: `{ presignedUrl, s3Key, expiresIn }`
-- Error: `INVALID_FILE`(400) — 허용되지 않는 확장자/크기 초과
+- Error: `INVALID_FILE`(400) — 허용되지 않는 확장자/크기 초과, `FORBIDDEN`(403)
 
 ### `POST /api/projects/{projectId}/files`
 - Description: S3 업로드 완료 후 메타데이터 등록
+- Permission: MEMBER 이상
 - Request Body: `{ s3Key, fileName, fileSize, contentType, taskId? }`
 - Response 201: `ProjectFileResponse`
+- Error: `FORBIDDEN`(403), `TASK_NOT_FOUND`(404) — `taskId` 지정 시 해당 프로젝트에 없는 Task면 반환
 
 ### `GET /api/projects/{projectId}/files`
 - Description: 프로젝트 파일 목록 조회
 - Query Parameter: `taskId?`, `page`, `size`
+- Permission: 프로젝트 멤버
 - Response 200: `Page<ProjectFileResponse>`
+- Error: `FORBIDDEN`(403)
+
+### `GET /api/projects/{projectId}/files/{fileId}/download-url`
+- Description: S3 다운로드용 Presigned URL 발급 (TTL 10분, [11-file-storage-design.md](./11-file-storage-design.md) §5 — 상태: Core)
+- Permission: 프로젝트 멤버
+- Response 200: `{ presignedUrl, expiresIn }`
+- Error: `FILE_NOT_FOUND`(404), `FORBIDDEN`(403)
 
 ### `DELETE /api/projects/{projectId}/files/{fileId}`
 - Description: 파일 삭제 (S3 객체 및 메타데이터)
 - Permission: 업로더, ADMIN 이상
 - Response 204
+- Error: `FILE_NOT_FOUND`(404), `FORBIDDEN`(403)
 
 ---
 

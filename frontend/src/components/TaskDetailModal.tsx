@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { commentApi } from '../services/commentApi'
+import { fileApi } from '../services/fileApi'
 import type { ProjectMember } from '../services/projectApi'
 import { taskApi, type TaskPriority } from '../services/taskApi'
 
@@ -31,6 +32,12 @@ export function TaskDetailModal({
     queryKey: ['comments', taskId],
     queryFn: () => commentApi.list(taskId),
   })
+
+  const filesQuery = useQuery({
+    queryKey: ['task-files', projectId, taskId],
+    queryFn: () => fileApi.list(projectId, taskId),
+  })
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['task', projectId, taskId] })
@@ -103,6 +110,21 @@ export function TaskDetailModal({
     mutationFn: (commentId: number) => commentApi.remove(taskId, commentId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['comments', taskId] }),
   })
+
+  const uploadFileMutation = useMutation({
+    mutationFn: (file: File) => fileApi.upload(projectId, file, taskId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['task-files', projectId, taskId] }),
+  })
+
+  const removeFileMutation = useMutation({
+    mutationFn: (fileId: number) => fileApi.remove(projectId, fileId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['task-files', projectId, taskId] }),
+  })
+
+  async function handleFileDownload(fileId: number) {
+    const url = await fileApi.downloadUrl(projectId, fileId)
+    window.open(url, '_blank')
+  }
 
   const task = taskQuery.data
 
@@ -262,6 +284,39 @@ export function TaskDetailModal({
                   작성
                 </button>
               </form>
+            </div>
+
+            <div className="mt-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-slate-700">첨부 파일</h3>
+                <button onClick={() => fileInputRef.current?.click()} className="text-xs text-blue-600 hover:underline">
+                  + 파일 첨부
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) uploadFileMutation.mutate(file)
+                    e.target.value = ''
+                  }}
+                />
+              </div>
+              {uploadFileMutation.isPending && <p className="mt-1 text-xs text-slate-400">업로드 중...</p>}
+              <ul className="mt-1 space-y-1">
+                {filesQuery.data?.content.map((f) => (
+                  <li key={f.id} className="flex items-center justify-between text-sm">
+                    <button onClick={() => handleFileDownload(f.id)} className="truncate text-blue-600 hover:underline">
+                      {f.fileName}
+                    </button>
+                    <button onClick={() => removeFileMutation.mutate(f.id)} className="text-xs text-red-400 hover:underline">
+                      삭제
+                    </button>
+                  </li>
+                ))}
+                {filesQuery.data?.content.length === 0 && <li className="text-sm text-slate-400">첨부된 파일이 없습니다.</li>}
+              </ul>
             </div>
 
             <button
