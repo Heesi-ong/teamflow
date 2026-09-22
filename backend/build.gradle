@@ -44,6 +44,13 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-websocket-test'
+	// 15-test-strategy.md §3: Integration Test는 H2 대체 금지, 실제 PostgreSQL/Redis 컨테이너를 쓴다.
+	// spring-boot-dependencies BOM이 가리키는 testcontainers.version(2.0.5)은 Maven Central에
+	// 아직 없어 실제로 배포된 최신 안정 버전을 명시한다.
+	testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+	testImplementation 'org.testcontainers:junit-jupiter:1.21.3'
+	testImplementation 'org.testcontainers:postgresql:1.21.3'
+	testImplementation 'com.redis:testcontainers-redis:2.2.4'
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'

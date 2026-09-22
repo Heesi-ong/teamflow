@@ -223,10 +223,12 @@ project-root/
 │   ├── 19-logging-audit-policy.md
 │   ├── 20-development-roadmap.md
 │   └── diagrams/wireframes/           화면 설계 목업 이미지 (06번 문서 8장에서 참조)
-├── backend/                           Spring Boot (Modular Monolith) — Phase 8(Dashboard) 완료
-│   └── src/main/java/com/teamflow/    auth/user/project/member/task/comment/notification/
-│                                      chat/document/file/activity/dashboard/common 13개 Domain Package
-├── frontend/                          React + Vite — Phase 8(Dashboard) 완료
+├── backend/                           Spring Boot (Modular Monolith) — Phase 9(Test) 완료
+│   ├── src/main/java/com/teamflow/    auth/user/project/member/task/comment/notification/
+│   │                                  chat/document/file/activity/dashboard/common 13개 Domain Package
+│   └── src/test/java/com/teamflow/    Unit/Integration(Testcontainers)/API 테스트
+├── frontend/                          React + Vite — Phase 9(Test) 완료
+│   └── e2e/                           Playwright E2E (핵심 시나리오, SSE 실시간 알림)
 ├── docker-compose.dev.yml             PostgreSQL 16 + Redis 7 + MinIO(S3 호환, 로컬 개발용)
 ├── docker-compose.prod.yml            상태: Planned
 └── README.md
@@ -234,7 +236,7 @@ project-root/
 
 ## How to Run
 
-Phase 8(Dashboard) 기준까지 구현되어 있습니다. 프로젝트 대시보드(Task 통계, 마감임박, 최근 활동)가 Redis 캐시(TTL 60초 + Task 생성/상태변경/삭제 시 즉시 무효화)로 동작하고, Task/문서/댓글 통합 검색과 Calendar 화면이 추가되었습니다. Test/Deployment 등 나머지는 Phase 9부터 추가됩니다.
+Phase 9(Test) 기준까지 구현되어 있습니다. Unit(JUnit/Mockito) → Integration(Testcontainers, 실제 Postgres/Redis) → API(RestTemplate + 랜덤 포트) → E2E(Playwright)의 테스트 피라미드가 갖춰져 있습니다. Deployment/Monitoring 등 나머지는 Phase 10부터 추가됩니다.
 
 ```bash
 # 1. 인프라(PostgreSQL, Redis, MinIO) 기동
@@ -248,6 +250,10 @@ cd backend && ./gradlew bootRun
 
 # 3. Frontend 실행 — http://localhost:5173
 cd frontend && npm install && npm run dev
+
+# 4. 테스트 실행
+cd backend && ./gradlew test        # Unit + Integration(Testcontainers) + API
+cd frontend && npm run e2e          # E2E (Playwright, Backend/Frontend 기동 상태 필요)
 ```
 
 ## Development Roadmap
