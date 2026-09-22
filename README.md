@@ -2,7 +2,7 @@
 
 웹 기반 팀 프로젝트 협업 플랫폼 — Task, 일정, 문서, 파일, 댓글, 실시간 알림, 채팅, 진행률 통계를 하나의 서비스로 통합 관리합니다.
 
-**배포**: 아직 배포 전입니다 — Phase 10(Deployment/Monitoring)에서 진행 예정입니다. 상세는 [20-development-roadmap.md](./docs/20-development-roadmap.md) 참고.
+**배포**: https://teamflow-frontend-qpod.onrender.com (Render + Neon + Upstash, 무료 티어 — 상세는 [21-free-deployment-guide.md](./docs/21-free-deployment-guide.md)). 15분 미사용 시 백엔드가 슬립해 첫 방문은 30~60초 콜드 스타트가 있을 수 있습니다. EC2 기반 운영 배포 설계는 [13-infrastructure-design.md](./docs/13-infrastructure-design.md)/[14-ci-cd-design.md](./docs/14-ci-cd-design.md) 참고(코드는 Phase 10에서 완성, 실제 EC2는 미프로비저닝).
 
 > 본 프로젝트는 기업 취업 포트폴리오용 개인 프로젝트이며, 단순 CRUD를 넘어 실무 환경에서 요구되는 인증/인가, 실시간 통신, 캐싱, 파일 업로드, 테스트 자동화, CI/CD, 모니터링을 통합적으로 다룹니다. 상세 설계는 [docs/](./docs) 디렉터리의 20개 기준 문서(Source of Truth)를 참고하세요.
 
@@ -278,7 +278,9 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 ### 카드 등록 없이 무료로 배포하기 (Render + Neon + Upstash)
 
-EC2는 실제 과금이 발생합니다. 비용 없이 배포하고 싶다면 [21-free-deployment-guide.md](./docs/21-free-deployment-guide.md)를 따라 Render(Backend/Frontend, [render.yaml](./render.yaml)) + Neon(PostgreSQL) + Upstash(Redis) 조합으로 배포할 수 있습니다. 이 경로는 프론트/백엔드가 서로 다른 origin이라 CORS + `SameSite=None` 쿠키가 필요해 백엔드에 `render`라는 별도 Spring 프로필을 추가했고, 로컬에서 CORS 허용/차단, `Secure; HttpOnly; SameSite=None` 쿠키 발급, `PORT` 환경변수 바인딩까지 직접 확인했습니다. 파일 업로드(S3)와 Prometheus/Grafana 모니터링은 이 무료 조합에 올릴 곳이 없어 범위 밖입니다.
+EC2는 실제 과금이 발생합니다. 비용 없이 배포하고 싶다면 [21-free-deployment-guide.md](./docs/21-free-deployment-guide.md)를 따라 Render(Backend/Frontend, [render.yaml](./render.yaml)) + Neon(PostgreSQL) + Upstash(Redis) 조합으로 배포할 수 있습니다. 이 경로는 프론트/백엔드가 서로 다른 origin이라 CORS + `SameSite=None` 쿠키가 필요해 백엔드에 `render`라는 별도 Spring 프로필을 추가했습니다.
+
+**실제로 https://teamflow-frontend-qpod.onrender.com 에 배포하고 검증까지 마쳤습니다**: 회원가입~로그인(cross-origin 쿠키), 프로젝트/Task 생성, 채팅(WebSocket), Task 배정 시 실시간 알림(Upstash Pub/Sub → SSE, 별도 브라우저 컨텍스트 두 개로 확인)까지 브라우저로 직접, 그리고 `frontend/e2e/*.spec.ts`를 `E2E_BASE_URL=https://teamflow-frontend-qpod.onrender.com`로 실제 배포 대상 실행해 통과 확인했습니다. 이 과정에서 로컬에서는 안 드러났던 문제를 두 개 더 잡았습니다 — S3 자격증명을 빈 문자열로 두면 AWS SDK가 기동 시점에 거부하는 문제, HomePage의 헬스체크가 하드코딩된 상대경로라 cross-origin에서 깨지는 문제. 파일 업로드(S3)와 Prometheus/Grafana 모니터링은 이 무료 조합에 올릴 곳이 없어 범위 밖입니다.
 
 ## Development Roadmap
 
