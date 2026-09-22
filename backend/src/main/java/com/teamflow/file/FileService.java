@@ -89,6 +89,12 @@ public class FileService {
     @Transactional
     public ProjectFileResponse register(Long projectId, Long uploaderId, FileRegisterRequest request) {
         projectMemberService.requireAtLeast(projectId, uploaderId, ProjectRole.MEMBER);
+        // s3Key는 createUploadUrl()이 이 프로젝트용으로 발급한 것이어야 한다 — 그렇지 않으면 다른
+        // 프로젝트에서 얻은 키(예: 자신이 멤버였던 다른 프로젝트에 업로드한 파일)를 등록해 그 객체에
+        // 대한 접근을 이 프로젝트로 복제해올 수 있다.
+        if (!request.s3Key().startsWith(keyPrefix(projectId))) {
+            throw new BusinessException(ErrorCode.FILE_KEY_MISMATCH);
+        }
         if (request.taskId() != null && taskRepository.findByIdAndProjectId(request.taskId(), projectId).isEmpty()) {
             throw new BusinessException(ErrorCode.TASK_NOT_FOUND);
         }
@@ -149,7 +155,11 @@ public class FileService {
 
     private String buildKey(Long projectId, String fileName) {
         OffsetDateTime now = OffsetDateTime.now();
-        return "projects/%d/%04d/%02d/%s_%s".formatted(projectId, now.getYear(), now.getMonthValue(), UUID.randomUUID(), fileName);
+        return "%s%04d/%02d/%s_%s".formatted(keyPrefix(projectId), now.getYear(), now.getMonthValue(), UUID.randomUUID(), fileName);
+    }
+
+    private String keyPrefix(Long projectId) {
+        return "projects/%d/".formatted(projectId);
     }
 
     private ProjectFile findInProject(Long projectId, Long fileId) {

@@ -46,7 +46,8 @@ public enum ErrorCode {
 
     // File
     INVALID_FILE(HttpStatus.BAD_REQUEST, "허용되지 않는 파일 형식이거나 크기 제한을 초과했습니다."),
-    FILE_NOT_FOUND(HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다.");
+    FILE_NOT_FOUND(HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다."),
+    FILE_KEY_MISMATCH(HttpStatus.FORBIDDEN, "이 프로젝트에 발급되지 않은 파일 키입니다.");
 
     private final HttpStatus status;
     private final String message;
