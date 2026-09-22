@@ -16,6 +16,7 @@ import com.teamflow.member.ProjectRole;
 import com.teamflow.notification.NotificationService;
 import com.teamflow.task.dto.TaskCreateRequest;
 import com.teamflow.task.dto.TaskStatusUpdateRequest;
+import com.teamflow.task.dto.TaskUpdateRequest;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -109,6 +110,37 @@ class TaskServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting(ex -> ((BusinessException) ex).getErrorCode())
                 .isEqualTo(ErrorCode.TASK_VERSION_CONFLICT);
+    }
+
+    @Test
+    void update_withBlankTitle_throwsInvalidRequest() {
+        // title은 부분 업데이트라 null(=변경 안 함)은 허용하지만, 빈 문자열로 지우는 시도는 막아야 한다.
+        Task task = taskFixture(1L, 1L);
+        when(taskRepository.findByIdAndProjectId(10L, 1L)).thenReturn(Optional.of(task));
+        when(projectMemberService.requireAtLeast(1L, 1L, ProjectRole.GUEST)).thenReturn(new ProjectMember(1L, 1L, ProjectRole.OWNER));
+        when(taskAssigneeRepository.existsByTaskIdAndUserId(any(), any())).thenReturn(false);
+        TaskService service = newService();
+
+        assertThatThrownBy(() -> service.update(1L, 10L, 1L, new TaskUpdateRequest("  ", null, null, null, null, 0L)))
+                .isInstanceOf(BusinessException.class)
+                .extracting(ex -> ((BusinessException) ex).getErrorCode())
+                .isEqualTo(ErrorCode.INVALID_REQUEST);
+    }
+
+    @Test
+    void update_withNullTitle_keepsExistingTitleUnchanged() {
+        // title 없이 description만 바꾸는 부분 업데이트는 계속 허용돼야 한다.
+        Task task = taskFixture(1L, 1L);
+        when(taskRepository.findByIdAndProjectId(10L, 1L)).thenReturn(Optional.of(task));
+        when(projectMemberService.requireAtLeast(1L, 1L, ProjectRole.GUEST)).thenReturn(new ProjectMember(1L, 1L, ProjectRole.OWNER));
+        when(taskAssigneeRepository.existsByTaskIdAndUserId(any(), any())).thenReturn(false);
+        when(taskAssigneeRepository.findByTaskId(any())).thenReturn(java.util.List.of());
+        TaskService service = newService();
+
+        service.update(1L, 10L, 1L, new TaskUpdateRequest(null, "New description", null, null, null, 0L));
+
+        assertThat(task.getTitle()).isEqualTo("Title");
+        assertThat(task.getDescription()).isEqualTo("New description");
     }
 
     @Test

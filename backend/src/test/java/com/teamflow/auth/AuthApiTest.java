@@ -69,6 +69,27 @@ class AuthApiTest {
     }
 
     @Test
+    void signup_malformedEmail_returns400WithInvalidRequestCode() {
+        // SignupRequest.email의 @Email 검증은 컨트롤러에 @Valid가 있어야만 작동한다.
+        HttpStatusCodeException ex = ApiTestSupport.catchStatusException(() -> restTemplate.postForEntity(
+                url("/api/auth/signup"), new SignupRequest("not-an-email", "password123", "User"), Object.class));
+
+        assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(ex.getResponseBodyAs(ErrorResponse.class).code()).isEqualTo("INVALID_REQUEST");
+    }
+
+    @Test
+    void signup_blankName_returns400WithInvalidRequestCode() {
+        String email = "blankname-" + System.nanoTime() + "@teamflow.dev";
+
+        HttpStatusCodeException ex = ApiTestSupport.catchStatusException(() -> restTemplate.postForEntity(
+                url("/api/auth/signup"), new SignupRequest(email, "password123", " "), Object.class));
+
+        assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(ex.getResponseBodyAs(ErrorResponse.class).code()).isEqualTo("INVALID_REQUEST");
+    }
+
+    @Test
     void login_wrongPassword_returns401WithInvalidCredentialsCode() {
         String email = "wrongpass-" + System.nanoTime() + "@teamflow.dev";
         restTemplate.postForEntity(url("/api/auth/signup"), new SignupRequest(email, "password123", "User"), Object.class);

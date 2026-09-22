@@ -57,6 +57,10 @@ public class ProjectService {
     public ProjectResponse update(Long projectId, Long userId, ProjectUpdateRequest request) {
         Project project = findActive(projectId);
         projectMemberService.requireAtLeast(projectId, userId, ProjectRole.ADMIN);
+        // name은 부분 업데이트라 null(=변경 안 함)은 허용하지만, 빈 문자열로 지우는 건 막는다.
+        if (request.name() != null && request.name().isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
         project.update(request.name(), request.description(), request.status(), request.startDate(), request.endDate());
         return ProjectResponse.from(project);
     }

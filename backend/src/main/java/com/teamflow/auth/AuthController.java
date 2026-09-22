@@ -5,6 +5,7 @@ import com.teamflow.auth.dto.SignupRequest;
 import com.teamflow.auth.dto.SignupResponse;
 import com.teamflow.auth.dto.TokenResponse;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -30,12 +31,12 @@ public class AuthController {
     }
 
     @PostMapping("/api/auth/signup")
-    public ResponseEntity<SignupResponse> signup(@RequestBody SignupRequest request) {
+    public ResponseEntity<SignupResponse> signup(@Valid @RequestBody SignupRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.signup(request));
     }
 
     @PostMapping("/api/auth/login")
-    public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest request, HttpServletResponse response) {
+    public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest request, HttpServletResponse response) {
         AuthService.IssuedTokens tokens = authService.login(request);
         setRefreshCookie(response, tokens.refreshToken());
         return ResponseEntity.ok(tokens.body());

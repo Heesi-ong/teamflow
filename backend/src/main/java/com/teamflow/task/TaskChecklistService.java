@@ -36,6 +36,11 @@ public class TaskChecklistService {
     @Transactional
     public TaskChecklistResponse update(Long taskId, Long checklistId, Long userId, TaskChecklistUpdateRequest request) {
         requireTask(taskId, userId);
+        // content는 부분 업데이트(체크박스만 토글할 때는 null로 옴)라 @NotBlank를 못 쓴다 — 값이
+        // 왔을 때만 공백이 아닌지 본다.
+        if (request.content() != null && request.content().isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
         TaskChecklist checklist = findInTask(taskId, checklistId);
         checklist.update(request.content(), request.isDone());
         return TaskChecklistResponse.from(checklist);

@@ -93,6 +93,7 @@ public class TaskService {
         Task task = findInProject(projectId, taskId);
         requireAuthorAssigneeOrAdmin(projectId, taskId, userId, task);
         checkVersion(task, request.version());
+        requireNonBlankIfPresent(request.title());
         task.updateInfo(request.title(), request.description(), request.priority(), request.startDate(), request.dueDate());
         return TaskResponse.from(task, currentAssignee(taskId));
     }
@@ -171,6 +172,13 @@ public class TaskService {
     private void checkVersion(Task task, Long expectedVersion) {
         if (!task.getVersion().equals(expectedVersion)) {
             throw new BusinessException(ErrorCode.TASK_VERSION_CONFLICT);
+        }
+    }
+
+    // title은 부분 업데이트라 null(=변경 안 함)은 허용하지만, 빈 문자열로 지우는 건 막는다.
+    private void requireNonBlankIfPresent(String title) {
+        if (title != null && title.isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
     }
 

@@ -59,6 +59,10 @@ public class DocumentService {
     public DocumentResponse update(Long projectId, Long documentId, Long requesterId, DocumentUpdateRequest request) {
         Document document = findInProject(projectId, documentId);
         requireAuthorOrAdmin(projectId, requesterId, document);
+        // title은 부분 업데이트라 null(=변경 안 함)은 허용하지만, 빈 문자열로 지우는 건 막는다.
+        if (request.title() != null && request.title().isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
         document.update(request.title(), request.content());
         return DocumentResponse.from(document, userService.getSummary(document.getAuthorId()).name());
     }
