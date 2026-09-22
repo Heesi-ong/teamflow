@@ -18,6 +18,13 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
+  data:
+    redis:
+      # 타임아웃을 안 걸면 Lettuce가 커맨드 응답을 무한정 기다린다 — Render 배포에서 Upstash 연결이
+      # 순간적으로 막혔을 때 앱 기동 전체가 몇 분씩 멈춰 있다가 포트 바인딩 타임아웃으로 죽는 걸 실제로
+      # 겪었다. 빨리 실패해서 재시도/재배포가 되게 한다.
+      connect-timeout: 5s
+      timeout: 5s
 
 management:
   endpoints:
