@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
+import { API_BASE_URL } from '../config'
 
 type HealthResponse = {
   status: string
@@ -9,7 +10,7 @@ function useBackendHealth() {
   return useQuery({
     queryKey: ['backend-health'],
     queryFn: async () => {
-      const { data } = await axios.get<HealthResponse>('/actuator/health')
+      const { data } = await axios.get<HealthResponse>(`${API_BASE_URL}/actuator/health`)
       return data
     },
     retry: false,

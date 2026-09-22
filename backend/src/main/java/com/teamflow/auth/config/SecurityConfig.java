@@ -72,6 +72,8 @@ public class SecurityConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
+        // HomePage의 백엔드 헬스체크 표시(src/pages/HomePage.tsx)가 cross-origin에서도 보이게 한다.
+        source.registerCorsConfiguration("/actuator/health", configuration);
         return source;
     }
 }
