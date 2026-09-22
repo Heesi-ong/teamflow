@@ -58,10 +58,19 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // teamflow.cors.allowed-origins가 비어 있으면(nginx 뒤 same-origin 배포) 아무 origin도 허용하지
-    // 않는다 — 그 경우 브라우저는 애초에 CORS preflight를 보내지 않으므로 영향이 없다.
+    // teamflow.cors.allowed-origins가 비어 있으면(nginx 뒤 same-origin 배포, 로컬 개발의 Vite 프록시도
+    // 마찬가지) 아무 매핑도 등록하지 않는다 — 직접 겪은 문제: 빈 allowedOrigins로 매핑을 등록해두면
+    // Spring Security가 "이 경로는 CORS 대상"이라고 인식해서, 브라우저가 보내는 Origin 헤더(같은
+    // origin으로 보이는 요청에도 POST/PUT/DELETE에는 대부분의 브라우저가 Origin을 실어 보낸다)를 보고
+    // 허용 목록이 비었으니 무조건 403으로 막아버린다. 매핑 자체를 등록하지 않으면
+    // getCorsConfiguration()이 모든 경로에 대해 null을 반환해서 CORS 처리 자체가 개입하지 않는다.
     @Bean
     public CorsConfigurationSource corsConfigurationSource(CorsProperties corsProperties) {
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        if (corsProperties.getAllowedOrigins().isEmpty()) {
+            return source;
+        }
+
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(corsProperties.getAllowedOrigins());
         configuration.setAllowedMethods(List.of(
@@ -70,7 +79,6 @@ public class SecurityConfig {
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", configuration);
         // HomePage의 백엔드 헬스체크 표시(src/pages/HomePage.tsx)가 cross-origin에서도 보이게 한다.
         source.registerCorsConfiguration("/actuator/health", configuration);

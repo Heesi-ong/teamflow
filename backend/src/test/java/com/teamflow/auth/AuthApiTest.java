@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.HttpStatusCodeException;
@@ -66,6 +68,24 @@ class AuthApiTest {
 
         assertThat(ex.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(ex.getResponseBodyAs(ErrorResponse.class).code()).isEqualTo("EMAIL_ALREADY_EXISTS");
+    }
+
+    @Test
+    void signup_withOriginHeaderAndNoCorsOriginsConfigured_stillSucceeds() {
+        // 회귀 테스트: teamflow.cors.allowed-origins가 비어 있을 때(로컬/EC2 프로필 기본값), Vite
+        // dev proxy를 거치는 "같은 origin처럼 보이는" 브라우저 POST도 실제로는 Origin 헤더를 실어
+        // 보낸다. CorsConfigurationSource가 빈 allowedOrigins로 /api/**에 매핑을 등록해두면 Spring
+        // Security가 이 요청을 CORS 대상으로 인식해 무조건 403으로 막아버렸다(RestTemplate은 기본적으로
+        // Origin 헤더를 안 보내 이 문제가 여태 안 잡혔다).
+        String email = "origin-" + System.nanoTime() + "@teamflow.dev";
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Origin", "http://localhost:5173");
+        HttpEntity<SignupRequest> request =
+                new HttpEntity<>(new SignupRequest(email, "password123", "Origin Header User"), headers);
+
+        ResponseEntity<Object> response = restTemplate.postForEntity(url("/api/auth/signup"), request, Object.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
 
     @Test
