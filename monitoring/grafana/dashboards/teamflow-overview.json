@@ -1,0 +1,105 @@
+{
+  "title": "TeamFlow Overview",
+  "uid": "teamflow-overview",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    { "title": "API Overview", "type": "row", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }, "id": 100 },
+    {
+      "id": 1, "title": "Request Rate (req/s)", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 1 },
+      "targets": [{ "expr": "sum(rate(http_server_requests_seconds_count[1m])) by (uri)", "legendFormat": "{{uri}}" }]
+    },
+    {
+      "id": 2, "title": "Response Time P50/P95/P99", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 1 },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(http_server_requests_seconds_bucket[5m])) by (le))", "legendFormat": "P50" },
+        { "expr": "histogram_quantile(0.95, sum(rate(http_server_requests_seconds_bucket[5m])) by (le))", "legendFormat": "P95" },
+        { "expr": "histogram_quantile(0.99, sum(rate(http_server_requests_seconds_bucket[5m])) by (le))", "legendFormat": "P99" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+    {
+      "id": 3, "title": "5xx Error Rate", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 1 },
+      "targets": [{
+        "expr": "sum(rate(http_server_requests_seconds_count{status=~\"5..\"}[5m])) / sum(rate(http_server_requests_seconds_count[5m]))",
+        "legendFormat": "error rate"
+      }],
+      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] }
+    },
+    {
+      "id": 4, "title": "Requests by Endpoint (Top 10)", "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 9 },
+      "targets": [{ "expr": "topk(10, sum(rate(http_server_requests_seconds_count[5m])) by (uri, status))", "format": "table", "instant": true }]
+    },
+
+    { "title": "JVM", "type": "row", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 }, "id": 200 },
+    {
+      "id": 10, "title": "Heap Memory Used", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 18 },
+      "targets": [{ "expr": "sum(jvm_memory_used_bytes{area=\"heap\"}) by (id)", "legendFormat": "{{id}}" }],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+    {
+      "id": 11, "title": "GC Pause Time", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 18 },
+      "targets": [{ "expr": "sum(rate(jvm_gc_pause_seconds_sum[5m])) by (action)", "legendFormat": "{{action}}" }],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+    {
+      "id": 12, "title": "Live Threads", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 18 },
+      "targets": [{ "expr": "jvm_threads_live_threads" }]
+    },
+
+    { "title": "Database", "type": "row", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 }, "id": 300 },
+    {
+      "id": 20, "title": "HikariCP Active Connections", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 27 },
+      "targets": [{ "expr": "hikaricp_connections_active", "legendFormat": "active" }, { "expr": "hikaricp_connections_pending", "legendFormat": "pending" }]
+    },
+    {
+      "id": 21, "title": "Postgres Active Backends", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 27 },
+      "targets": [{ "expr": "pg_stat_database_numbackends{datname=\"teamflow\"}" }]
+    },
+
+    { "title": "Redis", "type": "row", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 35 }, "id": 400 },
+    {
+      "id": 30, "title": "Connected Clients", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 36 },
+      "targets": [{ "expr": "redis_connected_clients" }]
+    },
+    {
+      "id": 31, "title": "Memory Used", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 36 },
+      "targets": [{ "expr": "redis_memory_used_bytes" }],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+
+    { "title": "Server Resource", "type": "row", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 44 }, "id": 500 },
+    {
+      "id": 40, "title": "CPU Usage", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 45 },
+      "targets": [{ "expr": "1 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m]))", "legendFormat": "cpu" }],
+      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] }
+    },
+    {
+      "id": 41, "title": "Memory Available", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 45 },
+      "targets": [{ "expr": "node_memory_MemAvailable_bytes" }],
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] }
+    },
+    {
+      "id": 42, "title": "Disk Usage", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 45 },
+      "targets": [{ "expr": "1 - (node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})", "legendFormat": "disk" }],
+      "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] }
+    }
+  ]
+}

@@ -1,1 +1,5 @@
 .DS_Store
+
+# 운영 배포용 실제 비밀값 (13-infrastructure-design.md §3). 예시는 .env.prod.example 참고.
+.env
+.env.prod

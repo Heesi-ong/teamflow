@@ -18,10 +18,16 @@ management:
   endpoints:
     web:
       exposure:
-        include: health
+        # 16-monitoring-design.md: Prometheus가 /actuator/prometheus를 스크래핑한다.
+        include: health,prometheus
   endpoint:
     health:
       show-details: never
+  metrics:
+    distribution:
+      # P50/P95/P99 응답시간 분포를 histogram_quantile()로 조회하기 위한 Prometheus Histogram Bucket.
+      percentiles-histogram:
+        http.server.requests: true
 
 teamflow:
   jwt:

@@ -191,11 +191,11 @@ Unit(JUnit/Mockito) → Integration(Testcontainers) → API(Controller) → E2E(
 
 ## CI/CD
 
-GitHub Actions로 Push → Build → Test → Docker Image Build → Deploy(EC2) → Health Check 파이프라인을 구성합니다. 상세: [14-ci-cd-design.md](./docs/14-ci-cd-design.md)
+GitHub Actions로 Push → Build → Test → Docker Image Build(GHCR) → Deploy(EC2 SSH) → Health Check → 실패 시 Rollback 파이프라인을 구성합니다([ci.yml](./.github/workflows/ci.yml), [deploy.yml](./.github/workflows/deploy.yml)). 이미지 빌드/푸시는 Secrets 없이도 동작하며, EC2 배포 단계는 `EC2_HOST`/`EC2_SSH_KEY` 등 Repository Secrets가 설정된 경우에만 실행됩니다(미설정 시 자동으로 건너뜀 — 실제 EC2 인스턴스는 아직 준비되지 않았습니다). 상세: [14-ci-cd-design.md](./docs/14-ci-cd-design.md)
 
 ## Monitoring
 
-Prometheus가 API/JVM/DB/Redis/서버 리소스 지표를 수집하고 Grafana로 시각화합니다. 상세: [16-monitoring-design.md](./docs/16-monitoring-design.md)
+Prometheus가 `/actuator/prometheus`(API/JVM/DB Pool)와 postgres_exporter/redis_exporter/node_exporter(DB/Redis/서버 리소스) 지표를 수집하고, Grafana가 [teamflow-overview 대시보드](./monitoring/grafana/dashboards/teamflow-overview.json)로 자동 프로비저닝되어 시각화합니다. `docker-compose.prod.yml`로 로컬에서 전체 스택을 기동해 실시간 지표가 표시되는 것까지 직접 확인했습니다. 상세: [16-monitoring-design.md](./docs/16-monitoring-design.md)
 
 ## Directory Structure
 
@@ -223,20 +223,25 @@ project-root/
 │   ├── 19-logging-audit-policy.md
 │   ├── 20-development-roadmap.md
 │   └── diagrams/wireframes/           화면 설계 목업 이미지 (06번 문서 8장에서 참조)
-├── backend/                           Spring Boot (Modular Monolith) — Phase 9(Test) 완료
+├── backend/                           Spring Boot (Modular Monolith) — Phase 10(Deployment/Monitoring) 완료
 │   ├── src/main/java/com/teamflow/    auth/user/project/member/task/comment/notification/
 │   │                                  chat/document/file/activity/dashboard/common 13개 Domain Package
-│   └── src/test/java/com/teamflow/    Unit/Integration(Testcontainers)/API 테스트
-├── frontend/                          React + Vite — Phase 9(Test) 완료
+│   ├── src/test/java/com/teamflow/    Unit/Integration(Testcontainers)/API 테스트
+│   └── Dockerfile                     Multi-stage build (Gradle → JRE 17 Alpine)
+├── frontend/                          React + Vite — Phase 10(Deployment/Monitoring) 완료
 │   └── e2e/                           Playwright E2E (핵심 시나리오, SSE 실시간 알림)
+├── nginx/                             Reverse Proxy + 정적 프론트엔드 서빙 (Multi-stage Dockerfile)
+├── monitoring/                        Prometheus 스크래핑 설정 + Grafana 데이터소스/대시보드 프로비저닝
+├── .github/workflows/                 ci.yml(Build+Test) / deploy.yml(GHCR Push + EC2 SSH 배포)
 ├── docker-compose.dev.yml             PostgreSQL 16 + Redis 7 + MinIO(S3 호환, 로컬 개발용)
-├── docker-compose.prod.yml            상태: Planned
+├── docker-compose.prod.yml            nginx + backend + postgres + redis + prometheus + grafana + exporters
+├── .env.prod.example                  운영 환경변수 예시 (실제 값은 .env로, Git 미포함)
 └── README.md
 ```
 
 ## How to Run
 
-Phase 9(Test) 기준까지 구현되어 있습니다. Unit(JUnit/Mockito) → Integration(Testcontainers, 실제 Postgres/Redis) → API(RestTemplate + 랜덤 포트) → E2E(Playwright)의 테스트 피라미드가 갖춰져 있습니다. Deployment/Monitoring 등 나머지는 Phase 10부터 추가됩니다.
+Phase 10(Deployment/Monitoring) 기준까지 구현되어 있습니다. 로드맵의 모든 Phase(1~10)가 완료되었습니다.
 
 ```bash
 # 1. 인프라(PostgreSQL, Redis, MinIO) 기동
@@ -255,6 +260,19 @@ cd frontend && npm install && npm run dev
 cd backend && ./gradlew test        # Unit + Integration(Testcontainers) + API
 cd frontend && npm run e2e          # E2E (Playwright, Backend/Frontend 기동 상태 필요)
 ```
+
+### 운영 스택 실행 (docker-compose.prod.yml)
+
+`.env.prod.example`을 참고해 `.env`를 준비한 뒤 전체 스택(nginx + backend + postgres + redis + prometheus + grafana + exporters)을 한 번에 기동할 수 있습니다. 로컬에서 이 방식으로 직접 검증했습니다(Prometheus가 4개 타겟을 모두 정상 스크래핑, Grafana 대시보드에 실시간 지표 표시 확인).
+
+```bash
+cp .env.prod.example .env   # 값 채우기
+docker compose -f docker-compose.prod.yml up -d --build
+# http://localhost/        - 애플리케이션
+# http://localhost:3000    - Grafana (admin / $GRAFANA_ADMIN_PASSWORD)
+```
+
+**주의**: `main` merge 시 GitHub Actions가 이미지를 빌드해 GHCR에 푸시하는 것까지는 Secrets 없이 동작합니다. 그러나 실제 EC2로의 SSH 배포(`deploy.yml`의 `deploy` job)는 `EC2_HOST`/`EC2_SSH_KEY` 등 Repository Secrets와 실제 프로비저닝된 EC2 인스턴스가 있어야 동작하며, 현재는 준비되어 있지 않아 자동으로 skip됩니다. TLS(443)도 실제 도메인/인증서가 있어야 하므로 `nginx.conf`는 우선 80으로 구성했습니다.
 
 ## Development Roadmap
 
