@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
+import { Link } from 'react-router-dom'
 import { API_BASE_URL } from '../config'
 
 type HealthResponse = {
@@ -23,7 +24,15 @@ export function HomePage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50">
       <h1 className="text-2xl font-bold text-blue-600">TeamFlow</h1>
-      <p className="text-slate-500">웹 기반 팀 프로젝트 협업 플랫폼 — Phase 1 스캐폴딩</p>
+      <p className="text-slate-500">웹 기반 팀 프로젝트 협업 플랫폼</p>
+      <div className="flex gap-3">
+        <Link to="/login" className="rounded bg-blue-600 px-4 py-2 text-white">
+          로그인
+        </Link>
+        <Link to="/signup" className="rounded border border-blue-600 px-4 py-2 text-blue-600">
+          회원가입
+        </Link>
+      </div>
       <p className="text-sm text-slate-400">
         Backend health:{' '}
         {isLoading && '확인 중...'}
