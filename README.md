@@ -2,9 +2,19 @@
 
 웹 기반 팀 프로젝트 협업 플랫폼 — Task, 일정, 문서, 파일, 댓글, 실시간 알림, 채팅, 진행률 통계를 하나의 서비스로 통합 관리합니다.
 
-**배포**: https://teamflow-frontend-qpod.onrender.com (Render + Neon + Upstash, 무료 티어 — 상세는 [21-free-deployment-guide.md](./docs/21-free-deployment-guide.md)). 15분 미사용 시 백엔드가 슬립해 첫 방문은 30~60초 콜드 스타트가 있을 수 있습니다. EC2 기반 운영 배포 설계는 [13-infrastructure-design.md](./docs/13-infrastructure-design.md)/[14-ci-cd-design.md](./docs/14-ci-cd-design.md) 참고(코드는 Phase 10에서 완성, 실제 EC2는 미프로비저닝).
+**배포**: **https://teamflow-frontend-qpod.onrender.com** (Render + Neon + Upstash, 무료 티어 — 상세는 [21-free-deployment-guide.md](./docs/21-free-deployment-guide.md)). 15분 미사용 시 백엔드가 슬립해 첫 방문은 30~60초 콜드 스타트가 있을 수 있습니다. EC2 기반 운영 배포 설계는 [13-infrastructure-design.md](./docs/13-infrastructure-design.md)/[14-ci-cd-design.md](./docs/14-ci-cd-design.md) 참고(코드는 Phase 10에서 완성, 실제 EC2는 미프로비저닝).
 
 > 본 프로젝트는 기업 취업 포트폴리오용 개인 프로젝트이며, 단순 CRUD를 넘어 실무 환경에서 요구되는 인증/인가, 실시간 통신, 캐싱, 파일 업로드, 테스트 자동화, CI/CD, 모니터링을 통합적으로 다룹니다. 상세 설계는 [docs/](./docs) 디렉터리의 20개 기준 문서(Source of Truth)를 참고하세요.
+
+## Screenshots
+
+| 홈 | 대시보드 |
+|---|---|
+| ![홈](./docs/screenshots/01-home.png) | ![대시보드](./docs/screenshots/02-dashboard.png) |
+
+| Kanban Board | Task 상세 |
+|---|---|
+| ![Kanban Board](./docs/screenshots/03-kanban-board.png) | ![Task 상세](./docs/screenshots/04-task-detail.png) |
 
 ## Problem
 
@@ -223,7 +233,8 @@ project-root/
 │   ├── 19-logging-audit-policy.md
 │   ├── 20-development-roadmap.md
 │   ├── 21-free-deployment-guide.md    카드 등록 없이 Render+Neon+Upstash로 무료 배포하는 절차
-│   └── diagrams/wireframes/           화면 설계 목업 이미지 (06번 문서 8장에서 참조)
+│   ├── diagrams/wireframes/            화면 설계 목업 이미지 (06번 문서 8장에서 참조)
+│   └── screenshots/                    실제 배포 화면 캡처 (README 상단 Screenshots 참조)
 ├── backend/                           Spring Boot (Modular Monolith) — Phase 10(Deployment/Monitoring) 완료
 │   ├── src/main/java/com/teamflow/    auth/user/project/member/task/comment/notification/
 │   │                                  chat/document/file/activity/dashboard/common 13개 Domain Package
