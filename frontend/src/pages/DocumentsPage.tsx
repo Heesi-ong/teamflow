@@ -51,14 +51,17 @@ export function DocumentsPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 p-6">
-      <Link to={`/projects/${id}`} className="text-sm text-blue-600 underline">
+      <Link to={`/projects/${id}`} className="text-sm font-medium text-slate-500 hover:text-slate-700">
         ← 프로젝트로
       </Link>
-      <h1 className="mt-2 text-xl font-bold text-slate-800">문서</h1>
+      <h1 className="mt-2 text-xl font-bold text-slate-900">문서</h1>
 
       <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[240px_1fr]">
-        <div className="rounded border border-slate-200 bg-white">
-          <button onClick={() => createMutation.mutate()} className="w-full border-b border-slate-100 p-2 text-sm text-blue-600 hover:bg-slate-50">
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+          <button
+            onClick={() => createMutation.mutate()}
+            className="w-full border-b border-slate-100 p-2.5 text-sm font-medium text-primary-600 hover:bg-primary-50"
+          >
             + 새 문서
           </button>
           <ul>
@@ -66,24 +69,26 @@ export function DocumentsPage() {
               <li key={doc.id}>
                 <button
                   onClick={() => setSelectedId(doc.id)}
-                  className={`block w-full truncate p-2 text-left text-sm hover:bg-slate-50 ${selectedId === doc.id ? 'bg-blue-50 text-blue-700' : 'text-slate-700'}`}
+                  className={`block w-full truncate p-2.5 text-left text-sm hover:bg-slate-50 ${
+                    selectedId === doc.id ? 'bg-primary-50 text-primary-700' : 'text-slate-700'
+                  }`}
                 >
                   {doc.title}
                 </button>
               </li>
             ))}
-            {listQuery.data?.content.length === 0 && <li className="p-2 text-sm text-slate-400">문서가 없습니다.</li>}
+            {listQuery.data?.content.length === 0 && <li className="p-2.5 text-sm text-slate-400">문서가 없습니다.</li>}
           </ul>
         </div>
 
-        <div className="rounded border border-slate-200 bg-white p-4">
-          {selectedId == null && <p className="text-slate-400">왼쪽에서 문서를 선택하거나 새로 만드세요.</p>}
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          {selectedId == null && <p className="text-sm text-slate-400">왼쪽에서 문서를 선택하거나 새로 만드세요.</p>}
           {selectedId != null && docQuery.data && (
             <>
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full border-b border-slate-200 pb-2 text-lg font-semibold focus:outline-none"
+                className="w-full border-b border-slate-200 pb-2 text-lg font-semibold text-slate-900 focus:border-primary-400 focus:outline-none"
               />
               <textarea
                 value={content}
@@ -93,10 +98,16 @@ export function DocumentsPage() {
                 placeholder="내용을 입력하세요"
               />
               <div className="mt-3 flex gap-2">
-                <button onClick={() => saveMutation.mutate()} className="rounded bg-blue-600 px-3 py-2 text-sm text-white">
+                <button
+                  onClick={() => saveMutation.mutate()}
+                  className="rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-primary-700"
+                >
                   저장
                 </button>
-                <button onClick={() => deleteMutation.mutate()} className="rounded bg-red-50 px-3 py-2 text-sm text-red-500">
+                <button
+                  onClick={() => deleteMutation.mutate()}
+                  className="rounded-lg bg-red-50 px-3.5 py-2 text-sm font-medium text-red-500 hover:bg-red-100"
+                >
                   삭제
                 </button>
               </div>

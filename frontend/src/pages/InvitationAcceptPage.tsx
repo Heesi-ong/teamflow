@@ -25,9 +25,12 @@ export function InvitationAcceptPage() {
 
   if (!accessToken) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50">
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-50 px-4 text-center">
         <p className="text-slate-600">초대를 수락하려면 먼저 로그인해주세요.</p>
-        <Link to="/login" className="rounded bg-blue-600 px-3 py-2 text-white">
+        <Link
+          to="/login"
+          className="rounded-lg bg-primary-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700"
+        >
           로그인
         </Link>
       </main>
@@ -35,10 +38,10 @@ export function InvitationAcceptPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50">
-      {acceptMutation.isPending && <p className="text-slate-500">초대 수락 중...</p>}
-      {acceptMutation.isError && <p className="text-red-500">초대가 만료되었거나 유효하지 않습니다.</p>}
-      {acceptMutation.isSuccess && <p className="text-green-600">참가 완료! 이동 중...</p>}
+    <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50 px-4 text-center">
+      {acceptMutation.isPending && <p className="text-sm text-slate-500">초대 수락 중...</p>}
+      {acceptMutation.isError && <p className="text-sm text-red-500">초대가 만료되었거나 유효하지 않습니다.</p>}
+      {acceptMutation.isSuccess && <p className="text-sm text-emerald-600">참가 완료! 이동 중...</p>}
     </main>
   )
 }

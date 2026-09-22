@@ -39,12 +39,15 @@ export function FilesPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 p-6">
-      <Link to={`/projects/${id}`} className="text-sm text-blue-600 underline">
+      <Link to={`/projects/${id}`} className="text-sm font-medium text-slate-500 hover:text-slate-700">
         ← 프로젝트로
       </Link>
       <div className="mt-2 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-slate-800">파일</h1>
-        <button onClick={() => fileInputRef.current?.click()} className="rounded bg-blue-600 px-3 py-2 text-sm text-white">
+        <h1 className="text-xl font-bold text-slate-900">파일</h1>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-primary-700"
+        >
           업로드
         </button>
         <input
@@ -61,29 +64,29 @@ export function FilesPage() {
       {uploadMutation.isPending && <p className="mt-2 text-sm text-slate-500">업로드 중...</p>}
       {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
 
-      <table className="mt-4 w-full rounded border border-slate-200 bg-white text-sm">
+      <table className="mt-4 w-full overflow-hidden rounded-xl border border-slate-200 bg-white text-sm shadow-sm">
         <thead>
           <tr className="border-b border-slate-100 text-left text-slate-500">
-            <th className="p-2">파일명</th>
-            <th className="p-2">크기</th>
-            <th className="p-2">업로더</th>
-            <th className="p-2">업로드일</th>
-            <th className="p-2"></th>
+            <th className="p-3 font-medium">파일명</th>
+            <th className="p-3 font-medium">크기</th>
+            <th className="p-3 font-medium">업로더</th>
+            <th className="p-3 font-medium">업로드일</th>
+            <th className="p-3"></th>
           </tr>
         </thead>
         <tbody>
           {filesQuery.data?.content.map((f) => (
-            <tr key={f.id} className="border-b border-slate-50">
-              <td className="p-2">
-                <button onClick={() => handleDownload(f.id)} className="text-blue-600 hover:underline">
+            <tr key={f.id} className="border-b border-slate-50 last:border-0">
+              <td className="p-3">
+                <button onClick={() => handleDownload(f.id)} className="text-primary-600 hover:underline">
                   {f.fileName}
                 </button>
               </td>
-              <td className="p-2 text-slate-500">{formatSize(f.fileSize)}</td>
-              <td className="p-2 text-slate-500">{f.uploaderName}</td>
-              <td className="p-2 text-slate-500">{new Date(f.createdAt).toLocaleDateString()}</td>
-              <td className="p-2 text-right">
-                <button onClick={() => removeMutation.mutate(f.id)} className="text-xs text-red-400 hover:underline">
+              <td className="p-3 text-slate-500">{formatSize(f.fileSize)}</td>
+              <td className="p-3 text-slate-500">{f.uploaderName}</td>
+              <td className="p-3 text-slate-500">{new Date(f.createdAt).toLocaleDateString()}</td>
+              <td className="p-3 text-right">
+                <button onClick={() => removeMutation.mutate(f.id)} className="text-xs text-slate-400 hover:text-red-500">
                   삭제
                 </button>
               </td>
@@ -91,7 +94,7 @@ export function FilesPage() {
           ))}
           {filesQuery.data?.content.length === 0 && (
             <tr>
-              <td colSpan={5} className="p-4 text-center text-slate-400">
+              <td colSpan={5} className="p-6 text-center text-slate-400">
                 업로드된 파일이 없습니다.
               </td>
             </tr>

@@ -5,9 +5,9 @@ import { dashboardApi } from '../services/dashboardApi'
 
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded border border-slate-200 bg-white p-4 text-center shadow-sm">
-      <p className="text-2xl font-bold text-slate-800">{value}</p>
-      <p className="mt-1 text-xs text-slate-500">{label}</p>
+    <div className="rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+      <p className="text-2xl font-bold text-slate-900">{value}</p>
+      <p className="mt-1 text-xs font-medium text-slate-500">{label}</p>
     </div>
   )
 }
@@ -29,10 +29,10 @@ export function ProjectDashboardPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 p-6">
-      <Link to={`/projects/${id}`} className="text-sm text-blue-600 underline">
+      <Link to={`/projects/${id}`} className="text-sm font-medium text-slate-500 hover:text-slate-700">
         ← 프로젝트로
       </Link>
-      <h1 className="mt-2 text-xl font-bold text-slate-800">Dashboard</h1>
+      <h1 className="mt-2 text-xl font-bold text-slate-900">Dashboard</h1>
 
       <form
         onSubmit={(e) => {
@@ -45,23 +45,23 @@ export function ProjectDashboardPage() {
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           placeholder="Task / 문서 / 댓글 검색"
-          className="flex-1 rounded border border-slate-300 px-3 py-2 text-sm"
+          className="flex-1 rounded-lg border border-slate-300 px-3.5 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100"
         />
-        <button type="submit" className="rounded bg-blue-600 px-3 py-2 text-sm text-white">
+        <button type="submit" className="rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-primary-700">
           검색
         </button>
       </form>
 
       {searchTerm && searchQuery.data && (
-        <div className="mt-3 rounded border border-slate-200 bg-white p-4 text-sm">
-          <p className="font-semibold text-slate-700">"{searchTerm}" 검색 결과</p>
-          <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className="mt-3 rounded-xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
+          <p className="font-semibold text-slate-900">"{searchTerm}" 검색 결과</p>
+          <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
               <p className="text-xs font-semibold text-slate-500">Task ({searchQuery.data.tasks.length})</p>
-              <ul className="mt-1 space-y-1">
+              <ul className="mt-1.5 space-y-1">
                 {searchQuery.data.tasks.map((t) => (
                   <li key={t.id}>
-                    <Link to={`/projects/${id}/board?taskId=${t.id}`} className="text-blue-600 hover:underline">
+                    <Link to={`/projects/${id}/board?taskId=${t.id}`} className="text-primary-600 hover:underline">
                       {t.title}
                     </Link>
                   </li>
@@ -70,7 +70,7 @@ export function ProjectDashboardPage() {
             </div>
             <div>
               <p className="text-xs font-semibold text-slate-500">문서 ({searchQuery.data.documents.length})</p>
-              <ul className="mt-1 space-y-1">
+              <ul className="mt-1.5 space-y-1">
                 {searchQuery.data.documents.map((d) => (
                   <li key={d.id} className="text-slate-700">
                     {d.title}
@@ -80,7 +80,7 @@ export function ProjectDashboardPage() {
             </div>
             <div>
               <p className="text-xs font-semibold text-slate-500">댓글 ({searchQuery.data.comments.length})</p>
-              <ul className="mt-1 space-y-1">
+              <ul className="mt-1.5 space-y-1">
                 {searchQuery.data.comments.map((c) => (
                   <li key={c.id} className="truncate text-slate-700">
                     {c.content}
@@ -102,23 +102,23 @@ export function ProjectDashboardPage() {
             <StatCard label="팀원" value={stats.memberCount} />
           </div>
 
-          <div className="mt-4 rounded border border-slate-200 bg-white p-4">
+          <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between text-sm">
               <span className="font-semibold text-slate-700">진행률</span>
               <span className="text-slate-500">{stats.progressRate}%</span>
             </div>
             <div className="mt-2 h-2 w-full rounded-full bg-slate-100">
-              <div className="h-2 rounded-full bg-blue-500" style={{ width: `${stats.progressRate}%` }} />
+              <div className="h-2 rounded-full bg-primary-500" style={{ width: `${stats.progressRate}%` }} />
             </div>
           </div>
 
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="rounded border border-slate-200 bg-white p-4">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <h2 className="text-sm font-semibold text-slate-700">마감 임박 Task</h2>
               <ul className="mt-2 space-y-1 text-sm">
                 {stats.dueSoonTasks.map((t) => (
                   <li key={t.id} className="flex justify-between">
-                    <Link to={`/projects/${id}/board?taskId=${t.id}`} className="text-blue-600 hover:underline">
+                    <Link to={`/projects/${id}/board?taskId=${t.id}`} className="text-primary-600 hover:underline">
                       {t.title}
                     </Link>
                     <span className="text-slate-400">{t.dueDate}</span>
@@ -128,7 +128,7 @@ export function ProjectDashboardPage() {
               </ul>
             </div>
 
-            <div className="rounded border border-slate-200 bg-white p-4">
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <h2 className="text-sm font-semibold text-slate-700">최근 활동</h2>
               <ul className="mt-2 space-y-1 text-sm">
                 {stats.recentActivities.map((a) => (
