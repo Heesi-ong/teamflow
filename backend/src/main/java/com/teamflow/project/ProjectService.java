@@ -77,7 +77,15 @@ public class ProjectService {
     public List<ProjectMemberResponse> transferOwnership(Long projectId, Long requesterId, Long memberId) {
         Project project = findActive(projectId);
         List<ProjectMemberResponse> updated = projectMemberService.transferOwnership(projectId, requesterId, memberId);
-        project.changeOwner(updated.get(0).userId());
+        // updated는 정확히 새 OWNER 1명 + 이전 OWNER(지금은 ADMIN) 1명이다. 리스트 순서(예: "0번이 새
+        // 오너")에 기대는 대신 role로 찾는다 — 08-api-specification.md는 순서를 명시하지 않고, 순서
+        // 의존은 ProjectMemberService 쪽 구현이 바뀌면 조용히 잘못된 owner_id를 심을 수 있다.
+        Long newOwnerId = updated.stream()
+                .filter(m -> m.role() == ProjectRole.OWNER)
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("transferOwnership() did not return a member with role OWNER"))
+                .userId();
+        project.changeOwner(newOwnerId);
         return updated;
     }
 

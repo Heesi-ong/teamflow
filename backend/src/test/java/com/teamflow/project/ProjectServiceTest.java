@@ -11,7 +11,9 @@ import com.teamflow.common.exception.ErrorCode;
 import com.teamflow.member.ProjectMember;
 import com.teamflow.member.ProjectMemberService;
 import com.teamflow.member.ProjectRole;
+import com.teamflow.member.dto.ProjectMemberResponse;
 import com.teamflow.project.dto.ProjectUpdateRequest;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -55,5 +57,24 @@ class ProjectServiceTest {
         service.update(1L, 1L, new ProjectUpdateRequest(null, "New description", null, null, null));
 
         assertThat(project.getName()).isEqualTo("Original");
+    }
+
+    @Test
+    void transferOwnership_picksNewOwnerByRole_notByListPosition() {
+        // ProjectMemberService.transferOwnership()이 반환하는 리스트에서 "0번째가 새 오너"라는 순서에
+        // 기대면 안 된다 — 일부러 이전 오너(now ADMIN)를 0번째에, 새 오너를 1번째에 둬서 순서를 뒤집는다.
+        Project project = new Project("Team", null, null, null, 1L);
+        when(projectRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(project));
+        ProjectMemberResponse previousOwnerNowAdmin =
+                new ProjectMemberResponse(100L, 1L, "Owner", "owner@teamflow.dev", ProjectRole.ADMIN, null);
+        ProjectMemberResponse newOwner =
+                new ProjectMemberResponse(200L, 2L, "Mate", "mate@teamflow.dev", ProjectRole.OWNER, null);
+        when(projectMemberService.transferOwnership(1L, 1L, 200L))
+                .thenReturn(List.of(previousOwnerNowAdmin, newOwner));
+        ProjectService service = newService();
+
+        service.transferOwnership(1L, 1L, 200L);
+
+        assertThat(project.getOwnerId()).isEqualTo(2L);
     }
 }
