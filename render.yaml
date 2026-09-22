@@ -12,6 +12,11 @@ services:
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: render
+      # 프리티어는 CPU가 극도로 제한돼 있어(약 0.1 vCPU) JVM 풀 JIT(C2) 컴파일 자체가 콜드스타트를
+      # 수 분 단위로 늘린다. 티어링을 낮춰 컴파일 오버헤드를 줄인다 — 장기 실행 처리량은 다소
+      # 손해지만, 응답 한 번 오는 데 몇 분씩 걸리는 것보다 낫다.
+      - key: JAVA_OPTS
+        value: -XX:TieredStopAtLevel=1
       - key: DB_URL
         sync: false
       - key: DB_USERNAME
