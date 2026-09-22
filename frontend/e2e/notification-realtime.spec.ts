@@ -34,8 +34,8 @@ test('assigning a task notifies the assignee in real time over SSE', async ({ br
 
   await ownerPage.goto(`/projects/${projectId}/members`)
   await ownerPage.getByRole('button', { name: '초대' }).click()
-  const inviteLinkText = await ownerPage.locator('text=/http:\\/\\/.*\\/invitations\\/.+/').textContent();
-  const inviteUrl = inviteLinkText!.match(/http:\/\/\S+/)![0]
+  const inviteLinkText = await ownerPage.locator('text=/https?:\\/\\/.*\\/invitations\\/.+/').textContent();
+  const inviteUrl = inviteLinkText!.match(/https?:\/\/\S+/)![0]
 
   // Mate 가입 + 로그인 + 초대 수락 (별도 context, 별도 쿠키)
   await matePage.goto('/signup')
