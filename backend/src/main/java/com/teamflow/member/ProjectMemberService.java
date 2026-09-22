@@ -1,5 +1,7 @@
 package com.teamflow.member;
 
+import com.teamflow.activity.ActivityActionType;
+import com.teamflow.activity.ProjectActivityEvent;
 import com.teamflow.common.exception.BusinessException;
 import com.teamflow.common.exception.ErrorCode;
 import com.teamflow.member.dto.InvitationResponse;
@@ -7,6 +9,7 @@ import com.teamflow.member.dto.InviteRequest;
 import com.teamflow.member.dto.ProjectMemberResponse;
 import com.teamflow.notification.NotificationService;
 import com.teamflow.notification.NotificationType;
+import com.teamflow.project.ProjectRepository;
 import com.teamflow.user.UserService;
 import com.teamflow.user.UserSummary;
 import java.security.SecureRandom;
@@ -15,6 +18,7 @@ import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,14 +36,19 @@ public class ProjectMemberService {
     private final InvitationRepository invitationRepository;
     private final UserService userService;
     private final NotificationService notificationService;
+    private final ProjectRepository projectRepository;
+    private final ApplicationEventPublisher eventPublisher;
     private final SecureRandom random = new SecureRandom();
 
     public ProjectMemberService(ProjectMemberRepository projectMemberRepository, InvitationRepository invitationRepository,
-            UserService userService, NotificationService notificationService) {
+            UserService userService, NotificationService notificationService, ProjectRepository projectRepository,
+            ApplicationEventPublisher eventPublisher) {
         this.projectMemberRepository = projectMemberRepository;
         this.invitationRepository = invitationRepository;
         this.userService = userService;
         this.notificationService = notificationService;
+        this.projectRepository = projectRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -49,6 +58,7 @@ public class ProjectMemberService {
 
     /** @return the requester's membership, once confirmed to be at least {@code minRole}. */
     public ProjectMember requireAtLeast(Long projectId, Long userId, ProjectRole minRole) {
+        requireActiveProject(projectId);
         ProjectMember member = projectMemberRepository.findByProjectIdAndUserId(projectId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.FORBIDDEN));
         if (!member.getRole().isAtLeast(minRole)) {
@@ -58,7 +68,8 @@ public class ProjectMemberService {
     }
 
     public boolean isMember(Long projectId, Long userId) {
-        return projectMemberRepository.existsByProjectIdAndUserId(projectId, userId);
+        return projectRepository.existsByIdAndDeletedAtIsNull(projectId)
+                && projectMemberRepository.existsByProjectIdAndUserId(projectId, userId);
     }
 
     /** Internal use (dashboard) — caller already verified membership. */
@@ -81,9 +92,14 @@ public class ProjectMemberService {
             }
         }
         ProjectRole role = request.role() != null ? request.role() : ProjectRole.MEMBER;
+        if (role == ProjectRole.OWNER) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
         Invitation invitation = new Invitation(projectId, request.email(), generateToken(), role, inviterId,
                 OffsetDateTime.now().plus(INVITATION_EXPIRY));
         invitationRepository.save(invitation);
+        eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.MEMBER_INVITED,
+                projectId, inviterId, "팀원 초대가 생성됨"));
         // 이메일이 기존 가입 사용자와 일치할 때만 알림을 보낼 수 있다 — 링크 초대이거나
         // 아직 가입하지 않은 이메일이면 수락 시점까지 알림 대상이 존재하지 않는다.
         if (invitedUserId != null) {
@@ -118,12 +134,20 @@ public class ProjectMemberService {
         if (!invitation.isUsable()) {
             throw new BusinessException(ErrorCode.INVITATION_EXPIRED);
         }
+        requireActiveProject(invitation.getProjectId());
+        UserSummary acceptingUser = userService.getSummary(userId);
+        if (acceptingUser == null || (invitation.getEmail() != null
+                && !invitation.getEmail().trim().equalsIgnoreCase(acceptingUser.email().trim()))) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
         if (projectMemberRepository.existsByProjectIdAndUserId(invitation.getProjectId(), userId)) {
             throw new BusinessException(ErrorCode.ALREADY_MEMBER);
         }
         ProjectMember member = projectMemberRepository.save(new ProjectMember(invitation.getProjectId(), userId, invitation.getRole()));
         invitation.accept();
-        return ProjectMemberResponse.from(member, userService.getSummary(userId));
+        eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.MEMBER_JOINED,
+                invitation.getProjectId(), userId, "팀원이 프로젝트에 참가함"));
+        return ProjectMemberResponse.from(member, acceptingUser);
     }
 
     public List<ProjectMemberResponse> listMembers(Long projectId, Long requesterId) {
@@ -140,7 +164,12 @@ public class ProjectMemberService {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
         ProjectMember member = getMemberInProject(projectId, memberId);
+        if (member.getRole() == ProjectRole.OWNER) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
         member.changeRole(newRole);
+        eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.MEMBER_ROLE_CHANGED,
+                projectId, requesterId, "팀원 역할이 " + newRole + "(으)로 변경됨"));
         return ProjectMemberResponse.from(member, userService.getSummary(member.getUserId()));
     }
 
@@ -148,8 +177,13 @@ public class ProjectMemberService {
     public List<ProjectMemberResponse> transferOwnership(Long projectId, Long requesterId, Long memberId) {
         ProjectMember currentOwner = requireAtLeast(projectId, requesterId, ProjectRole.OWNER);
         ProjectMember newOwner = getMemberInProject(projectId, memberId);
+        if (newOwner.getUserId().equals(requesterId)) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
         currentOwner.changeRole(ProjectRole.ADMIN);
         newOwner.changeRole(ProjectRole.OWNER);
+        notificationService.create(newOwner.getUserId(), NotificationType.ANNOUNCEMENT,
+                "프로젝트 소유권이 위임되었습니다.", "/projects/" + projectId);
         Map<Long, UserSummary> users = userService.getSummaries(List.of(currentOwner.getUserId(), newOwner.getUserId()));
         return List.of(
                 ProjectMemberResponse.from(newOwner, users.get(newOwner.getUserId())),
@@ -166,16 +200,21 @@ public class ProjectMemberService {
             throw new BusinessException(ErrorCode.OWNER_CANNOT_LEAVE);
         }
         projectMemberRepository.delete(member);
+        eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.MEMBER_REMOVED,
+                projectId, requesterId, "팀원이 프로젝트에서 제거됨"));
     }
 
     @Transactional
     public void leave(Long projectId, Long userId) {
+        requireActiveProject(projectId);
         ProjectMember member = projectMemberRepository.findByProjectIdAndUserId(projectId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.FORBIDDEN));
         if (member.getRole() == ProjectRole.OWNER) {
             throw new BusinessException(ErrorCode.OWNER_CANNOT_LEAVE);
         }
         projectMemberRepository.delete(member);
+        eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.MEMBER_LEFT,
+                projectId, userId, "팀원이 프로젝트에서 탈퇴함"));
     }
 
     private ProjectMember getMemberInProject(Long projectId, Long memberId) {
@@ -185,6 +224,12 @@ public class ProjectMemberService {
             throw new BusinessException(ErrorCode.MEMBER_NOT_FOUND);
         }
         return member;
+    }
+
+    private void requireActiveProject(Long projectId) {
+        if (!projectRepository.existsByIdAndDeletedAtIsNull(projectId)) {
+            throw new BusinessException(ErrorCode.PROJECT_NOT_FOUND);
+        }
     }
 
     private String generateToken() {

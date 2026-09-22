@@ -24,4 +24,5 @@ export const notificationApi = {
     http.get<PageResponse<Notification>>('/notifications', { params: { isRead, size: 20 } }).then((res) => res.data),
   markRead: (id: number) => http.patch<Notification>(`/notifications/${id}/read`).then((res) => res.data),
   markAllRead: () => http.patch('/notifications/read-all'),
+  unreadCount: () => http.get<{ unreadCount: number }>('/notifications/unread-count').then((res) => res.data.unreadCount),
 }

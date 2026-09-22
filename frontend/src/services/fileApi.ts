@@ -2,6 +2,8 @@ import axios from 'axios'
 import { http } from './http'
 import type { PageResponse } from './projectApi'
 
+export const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024
+
 export interface ProjectFile {
   id: number
   projectId: number
@@ -23,6 +25,9 @@ export const fileApi = {
 
   // 11-file-storage-design.md 업로드 흐름: presigned URL 발급 -> S3에 직접 PUT -> 메타데이터 등록.
   async upload(projectId: number, file: File, taskId?: number): Promise<ProjectFile> {
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      throw new Error('파일은 최대 50MB까지 업로드할 수 있습니다.')
+    }
     const { data: presigned } = await http.post<{ presignedUrl: string; s3Key: string }>(
       `/projects/${projectId}/files/presigned-url`,
       { fileName: file.name, contentType: file.type || 'application/octet-stream', fileSize: file.size },

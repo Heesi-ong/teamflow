@@ -8,6 +8,7 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 
 /**
  * Single place that turns exceptions into the common error response format
@@ -43,6 +44,13 @@ public class GlobalExceptionHandler {
         // Malformed JSON or an invalid enum literal (e.g. status: "BOGUS") lands here before
         // it ever reaches @Valid — without this it fell through to the generic 500 below.
         return ResponseEntity.status(ErrorCode.INVALID_REQUEST.getStatus()).body(ErrorResponse.of(ErrorCode.INVALID_REQUEST));
+    }
+
+    @ExceptionHandler(AsyncRequestNotUsableException.class)
+    public void handleDisconnectedAsyncClient(AsyncRequestNotUsableException ex) {
+        // SSE 클라이언트가 탭을 닫은 뒤 컨테이너가 연결 종료를 알릴 때 발생하는 정상적인 연결 수명
+        // 이벤트다. 이미 text/event-stream 응답이 커밋됐으므로 JSON 오류 본문을 쓰려고 하면 오히려
+        // HttpMessageNotWritableException과 대량의 스택 트레이스가 남는다.
     }
 
     @ExceptionHandler(Exception.class)

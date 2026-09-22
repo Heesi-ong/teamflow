@@ -87,6 +87,10 @@ public class Task extends BaseEntity {
         this.status = status;
     }
 
+    public void markAssigneeChanged() {
+        touch();
+    }
+
     public Long getId() {
         return id;
     }

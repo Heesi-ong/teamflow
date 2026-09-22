@@ -3,6 +3,8 @@ package com.teamflow.dashboard;
 import com.teamflow.activity.TaskCreatedEvent;
 import com.teamflow.activity.TaskDeletedEvent;
 import com.teamflow.activity.TaskStatusChangedEvent;
+import com.teamflow.activity.ProjectActivityEvent;
+import com.teamflow.activity.CommentAddedEvent;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -33,6 +35,16 @@ public class DashboardCacheEvictListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onTaskDeleted(TaskDeletedEvent event) {
+        dashboardService.evictCache(event.projectId());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onCommentAdded(CommentAddedEvent event) {
+        dashboardService.evictCache(event.projectId());
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onProjectActivity(ProjectActivityEvent event) {
         dashboardService.evictCache(event.projectId());
     }
 }

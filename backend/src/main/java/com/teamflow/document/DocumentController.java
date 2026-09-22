@@ -51,7 +51,7 @@ public class DocumentController {
     @PatchMapping("/api/projects/{projectId}/documents/{documentId}")
     public DocumentResponse update(
             @PathVariable Long projectId, @PathVariable Long documentId, @AuthenticationPrincipal UserPrincipal principal,
-            @RequestBody DocumentUpdateRequest request) {
+            @Valid @RequestBody DocumentUpdateRequest request) {
         return documentService.update(projectId, documentId, principal.userId(), request);
     }
 

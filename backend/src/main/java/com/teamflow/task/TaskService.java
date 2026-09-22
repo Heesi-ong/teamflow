@@ -3,6 +3,8 @@ package com.teamflow.task;
 import com.teamflow.activity.TaskCreatedEvent;
 import com.teamflow.activity.TaskDeletedEvent;
 import com.teamflow.activity.TaskStatusChangedEvent;
+import com.teamflow.activity.ActivityActionType;
+import com.teamflow.activity.ProjectActivityEvent;
 import com.teamflow.common.dto.PageResponse;
 import com.teamflow.common.exception.BusinessException;
 import com.teamflow.common.exception.ErrorCode;
@@ -94,7 +96,12 @@ public class TaskService {
         requireAuthorAssigneeOrAdmin(projectId, taskId, userId, task);
         checkVersion(task, request.version());
         requireNonBlankIfPresent(request.title());
+        validateDateRange(
+                request.startDate() != null ? request.startDate() : task.getStartDate(),
+                request.dueDate() != null ? request.dueDate() : task.getDueDate());
         task.updateInfo(request.title(), request.description(), request.priority(), request.startDate(), request.dueDate());
+        eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.TASK_UPDATED,
+                projectId, userId, "Task \"" + task.getTitle() + "\" 정보가 변경됨"));
         return TaskResponse.from(task, currentAssignee(taskId));
     }
 
@@ -126,6 +133,12 @@ public class TaskService {
         }
         taskAssigneeRepository.deleteByTaskId(taskId);
         taskAssigneeRepository.save(new TaskAssignee(taskId, request.assigneeId()));
+        // 담당자는 별도 테이블에 있지만 Task aggregate의 일부다. Task도 dirty 상태로 만들어
+        // @Version을 증가시켜 동시 담당자 변경을 감지한다.
+        task.markAssigneeChanged();
+        taskRepository.flush();
+        eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.TASK_ASSIGNEE_CHANGED,
+                projectId, userId, "Task \"" + task.getTitle() + "\" 담당자가 변경됨"));
         if (!request.assigneeId().equals(userId)) {
             notifyAssigned(task, request.assigneeId());
         }
@@ -138,6 +151,8 @@ public class TaskService {
         requireAuthorOrAdmin(projectId, taskId, userId, task);
         taskRepository.delete(task);
         eventPublisher.publishEvent(new TaskDeletedEvent(projectId, taskId));
+        eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.TASK_DELETED,
+                projectId, userId, "Task \"" + task.getTitle() + "\" 삭제됨"));
     }
 
     /** Internal read for other modules' reporting needs (dashboard) — caller already verified membership. */
@@ -178,6 +193,12 @@ public class TaskService {
     // title은 부분 업데이트라 null(=변경 안 함)은 허용하지만, 빈 문자열로 지우는 건 막는다.
     private void requireNonBlankIfPresent(String title) {
         if (title != null && title.isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
+    }
+
+    private void validateDateRange(LocalDate startDate, LocalDate dueDate) {
+        if (startDate != null && dueDate != null && dueDate.isBefore(startDate)) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
     }

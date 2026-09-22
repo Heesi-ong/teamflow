@@ -15,6 +15,7 @@ import com.teamflow.member.ProjectMemberService;
 import com.teamflow.member.ProjectRole;
 import com.teamflow.notification.NotificationService;
 import com.teamflow.task.dto.TaskCreateRequest;
+import com.teamflow.task.dto.TaskAssigneeUpdateRequest;
 import com.teamflow.task.dto.TaskStatusUpdateRequest;
 import com.teamflow.task.dto.TaskUpdateRequest;
 import java.util.Optional;
@@ -156,5 +157,19 @@ class TaskServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting(ex -> ((BusinessException) ex).getErrorCode())
                 .isEqualTo(ErrorCode.FORBIDDEN);
+    }
+
+    @Test
+    void changeAssignee_marksTaskDirtyAndFlushesVersion() {
+        Task task = taskFixture(1L, 1L);
+        when(taskRepository.findByIdAndProjectId(10L, 1L)).thenReturn(Optional.of(task));
+        when(projectMemberService.requireAtLeast(1L, 1L, ProjectRole.GUEST))
+                .thenReturn(new ProjectMember(1L, 1L, ProjectRole.OWNER));
+        when(projectMemberService.isMember(1L, 2L)).thenReturn(true);
+
+        newService().changeAssignee(1L, 10L, 1L, new TaskAssigneeUpdateRequest(2L, 0L));
+
+        assertThat(task.getUpdatedAt()).isNotNull();
+        verify(taskRepository).flush();
     }
 }

@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { commentApi } from '../services/commentApi'
-import { fileApi } from '../services/fileApi'
+import { fileApi, MAX_FILE_SIZE_BYTES } from '../services/fileApi'
 import { PRIORITY_BADGE } from '../lib/taskVisuals'
 import type { ProjectMember } from '../services/projectApi'
 import { taskApi, type TaskPriority } from '../services/taskApi'
+import { FILE_STORAGE_ENABLED } from '../config'
 
 const PRIORITIES: TaskPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
 
@@ -29,6 +30,7 @@ export function TaskDetailModal({
   const [checklistInput, setChecklistInput] = useState('')
   const [commentInput, setCommentInput] = useState('')
   const [conflict, setConflict] = useState(false)
+  const [uploadFileError, setUploadFileError] = useState<string | null>(null)
 
   const taskQuery = useQuery({
     queryKey: ['task', projectId, taskId],
@@ -120,7 +122,11 @@ export function TaskDetailModal({
 
   const uploadFileMutation = useMutation({
     mutationFn: (file: File) => fileApi.upload(projectId, file, taskId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['task-files', projectId, taskId] }),
+    onSuccess: () => {
+      setUploadFileError(null)
+      queryClient.invalidateQueries({ queryKey: ['task-files', projectId, taskId] })
+    },
+    onError: (err: any) => setUploadFileError(err.response?.data?.message ?? err.message ?? '업로드에 실패했습니다.'),
   })
 
   const removeFileMutation = useMutation({
@@ -303,28 +309,37 @@ export function TaskDetailModal({
             <div className="mt-5">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-slate-700">첨부 파일</h3>
-                <button onClick={() => fileInputRef.current?.click()} className="text-xs font-medium text-primary-600 hover:text-primary-700">
-                  + 파일 첨부
-                </button>
+                {FILE_STORAGE_ENABLED && (
+                  <button onClick={() => fileInputRef.current?.click()} className="text-xs font-medium text-primary-600 hover:text-primary-700">
+                    + 파일 첨부
+                  </button>
+                )}
                 <input
                   ref={fileInputRef}
                   type="file"
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0]
-                    if (file) uploadFileMutation.mutate(file)
+                    if (file && file.size > MAX_FILE_SIZE_BYTES) {
+                      setUploadFileError('파일은 최대 50MB까지 업로드할 수 있습니다.')
+                    } else if (file) {
+                      uploadFileMutation.mutate(file)
+                    }
                     e.target.value = ''
                   }}
                 />
               </div>
+              {!FILE_STORAGE_ENABLED && <p className="mt-1 text-xs text-amber-600">현재 배포 환경에서는 파일 기능을 사용할 수 없습니다.</p>}
+              {FILE_STORAGE_ENABLED && <p className="mt-1 text-xs text-slate-400">파일당 최대 50MB</p>}
               {uploadFileMutation.isPending && <p className="mt-1 text-xs text-slate-400">업로드 중...</p>}
+              {uploadFileError && <p className="mt-1 text-xs text-red-500">{uploadFileError}</p>}
               <ul className="mt-2 space-y-1">
                 {filesQuery.data?.content.map((f) => (
                   <li key={f.id} className="flex items-center justify-between text-sm">
-                    <button onClick={() => handleFileDownload(f.id)} className="truncate text-primary-600 hover:underline">
+                    <button disabled={!FILE_STORAGE_ENABLED} onClick={() => handleFileDownload(f.id)} className="truncate text-primary-600 hover:underline disabled:text-slate-400">
                       {f.fileName}
                     </button>
-                    <button onClick={() => removeFileMutation.mutate(f.id)} className="text-xs text-slate-400 hover:text-red-500">
+                    <button disabled={!FILE_STORAGE_ENABLED} onClick={() => removeFileMutation.mutate(f.id)} className="text-xs text-slate-400 hover:text-red-500 disabled:opacity-40">
                       삭제
                     </button>
                   </li>

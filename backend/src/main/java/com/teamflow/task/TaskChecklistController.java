@@ -34,7 +34,7 @@ public class TaskChecklistController {
     @PatchMapping("/api/tasks/{taskId}/checklists/{checklistId}")
     public TaskChecklistResponse update(
             @PathVariable Long taskId, @PathVariable Long checklistId, @AuthenticationPrincipal UserPrincipal principal,
-            @RequestBody TaskChecklistUpdateRequest request) {
+            @Valid @RequestBody TaskChecklistUpdateRequest request) {
         return taskChecklistService.update(taskId, checklistId, principal.userId(), request);
     }
 

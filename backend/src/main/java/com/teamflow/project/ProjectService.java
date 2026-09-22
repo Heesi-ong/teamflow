@@ -1,5 +1,7 @@
 package com.teamflow.project;
 
+import com.teamflow.activity.ActivityActionType;
+import com.teamflow.activity.ProjectActivityEvent;
 import com.teamflow.common.dto.PageResponse;
 import com.teamflow.common.exception.BusinessException;
 import com.teamflow.common.exception.ErrorCode;
@@ -15,6 +17,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.context.ApplicationEventPublisher;
 
 /** 03-functional-specification.md §3.5, 08-api-specification.md §2. */
 @Service
@@ -22,10 +25,13 @@ public class ProjectService {
 
     private final ProjectRepository projectRepository;
     private final ProjectMemberService projectMemberService;
+    private final ApplicationEventPublisher eventPublisher;
 
-    public ProjectService(ProjectRepository projectRepository, ProjectMemberService projectMemberService) {
+    public ProjectService(ProjectRepository projectRepository, ProjectMemberService projectMemberService,
+            ApplicationEventPublisher eventPublisher) {
         this.projectRepository = projectRepository;
         this.projectMemberService = projectMemberService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -33,6 +39,8 @@ public class ProjectService {
         Project project = projectRepository.save(
                 new Project(request.name(), request.description(), request.startDate(), request.endDate(), ownerId));
         projectMemberService.addOwner(project.getId(), ownerId);
+        eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.PROJECT_CREATED,
+                project.getId(), ownerId, "프로젝트가 생성됨"));
         return ProjectResponse.from(project);
     }
 
@@ -61,7 +69,12 @@ public class ProjectService {
         if (request.name() != null && request.name().isBlank()) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
+        validateDateRange(
+                request.startDate() != null ? request.startDate() : project.getStartDate(),
+                request.endDate() != null ? request.endDate() : project.getEndDate());
         project.update(request.name(), request.description(), request.status(), request.startDate(), request.endDate());
+        eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.PROJECT_UPDATED,
+                projectId, userId, "프로젝트 정보가 변경됨"));
         return ProjectResponse.from(project);
     }
 
@@ -70,6 +83,8 @@ public class ProjectService {
         Project project = findActive(projectId);
         projectMemberService.requireAtLeast(projectId, userId, ProjectRole.OWNER);
         project.softDelete();
+        eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.PROJECT_DELETED,
+                projectId, userId, "프로젝트가 삭제됨"));
     }
 
     /** 03-functional-specification.md §3.17 step 4: owner_id must move with the OWNER role, in the same transaction. */
@@ -86,11 +101,19 @@ public class ProjectService {
                 .orElseThrow(() -> new IllegalStateException("transferOwnership() did not return a member with role OWNER"))
                 .userId();
         project.changeOwner(newOwnerId);
+        eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.OWNERSHIP_TRANSFERRED,
+                projectId, requesterId, "프로젝트 소유권이 위임됨"));
         return updated;
     }
 
     private Project findActive(Long projectId) {
         return projectRepository.findByIdAndDeletedAtIsNull(projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
+    }
+
+    private void validateDateRange(java.time.LocalDate startDate, java.time.LocalDate endDate) {
+        if (startDate != null && endDate != null && endDate.isBefore(startDate)) {
+            throw new BusinessException(ErrorCode.INVALID_REQUEST);
+        }
     }
 }

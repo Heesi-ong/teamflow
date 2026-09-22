@@ -29,6 +29,8 @@ import org.springframework.transaction.annotation.Transactional;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -77,6 +79,7 @@ public class FileService {
                 .bucket(s3Properties.getBucket())
                 .key(s3Key)
                 .contentType(request.contentType())
+                .contentLength(request.fileSize())
                 .build();
         var presignRequest = PutObjectPresignRequest.builder()
                 .signatureDuration(UPLOAD_TTL)
@@ -89,11 +92,27 @@ public class FileService {
     @Transactional
     public ProjectFileResponse register(Long projectId, Long uploaderId, FileRegisterRequest request) {
         projectMemberService.requireAtLeast(projectId, uploaderId, ProjectRole.MEMBER);
+        validate(request.fileName(), request.fileSize());
         // s3Key는 createUploadUrl()이 이 프로젝트용으로 발급한 것이어야 한다 — 그렇지 않으면 다른
         // 프로젝트에서 얻은 키(예: 자신이 멤버였던 다른 프로젝트에 업로드한 파일)를 등록해 그 객체에
         // 대한 접근을 이 프로젝트로 복제해올 수 있다.
         if (!request.s3Key().startsWith(keyPrefix(projectId))) {
             throw new BusinessException(ErrorCode.FILE_KEY_MISMATCH);
+        }
+        HeadObjectResponse uploadedObject;
+        try {
+            uploadedObject = s3Client.headObject(HeadObjectRequest.builder()
+                    .bucket(s3Properties.getBucket())
+                    .key(request.s3Key())
+                    .build());
+        } catch (S3Exception e) {
+            throw new BusinessException(ErrorCode.INVALID_FILE);
+        }
+        if (!uploadedObject.contentLength().equals(request.fileSize())
+                || uploadedObject.contentLength() > MAX_FILE_SIZE
+                || uploadedObject.contentType() == null
+                || !uploadedObject.contentType().equalsIgnoreCase(request.contentType())) {
+            throw new BusinessException(ErrorCode.INVALID_FILE);
         }
         if (request.taskId() != null && taskRepository.findByIdAndProjectId(request.taskId(), projectId).isEmpty()) {
             throw new BusinessException(ErrorCode.TASK_NOT_FOUND);

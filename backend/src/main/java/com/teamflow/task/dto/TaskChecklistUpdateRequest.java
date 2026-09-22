@@ -1,4 +1,6 @@
 package com.teamflow.task.dto;
 
-public record TaskChecklistUpdateRequest(String content, Boolean isDone) {
+import jakarta.validation.constraints.Size;
+
+public record TaskChecklistUpdateRequest(@Size(max = 500) String content, Boolean isDone) {
 }

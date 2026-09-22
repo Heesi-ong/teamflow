@@ -4,6 +4,8 @@ const rawApiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.re
 
 export const API_BASE_URL = rawApiBase
 
+export const FILE_STORAGE_ENABLED = (import.meta.env.VITE_FILE_STORAGE_ENABLED as string | undefined) !== 'false'
+
 export const WS_BASE_URL = rawApiBase
   ? rawApiBase.replace(/^http/, 'ws')
   : `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`

@@ -1,5 +1,7 @@
 package com.teamflow.document;
 
+import com.teamflow.activity.ActivityActionType;
+import com.teamflow.activity.ProjectActivityEvent;
 import com.teamflow.common.dto.PageResponse;
 import com.teamflow.common.exception.BusinessException;
 import com.teamflow.common.exception.ErrorCode;
@@ -17,6 +19,7 @@ import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,18 +30,22 @@ public class DocumentService {
     private final DocumentRepository documentRepository;
     private final ProjectMemberService projectMemberService;
     private final UserService userService;
+    private final ApplicationEventPublisher eventPublisher;
 
     public DocumentService(DocumentRepository documentRepository, ProjectMemberService projectMemberService,
-            UserService userService) {
+            UserService userService, ApplicationEventPublisher eventPublisher) {
         this.documentRepository = documentRepository;
         this.projectMemberService = projectMemberService;
         this.userService = userService;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
     public DocumentResponse create(Long projectId, Long authorId, DocumentCreateRequest request) {
         projectMemberService.requireAtLeast(projectId, authorId, ProjectRole.MEMBER);
         Document document = documentRepository.save(new Document(projectId, authorId, request.title(), request.content()));
+        eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.DOCUMENT_CREATED,
+                projectId, authorId, "문서 \"" + document.getTitle() + "\" 생성됨"));
         return DocumentResponse.from(document, userService.getSummary(authorId).name());
     }
 
@@ -64,6 +71,8 @@ public class DocumentService {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
         document.update(request.title(), request.content());
+        eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.DOCUMENT_UPDATED,
+                projectId, requesterId, "문서 \"" + document.getTitle() + "\" 수정됨"));
         return DocumentResponse.from(document, userService.getSummary(document.getAuthorId()).name());
     }
 
@@ -72,6 +81,8 @@ public class DocumentService {
         Document document = findInProject(projectId, documentId);
         requireAuthorOrAdmin(projectId, requesterId, document);
         documentRepository.delete(document);
+        eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.DOCUMENT_DELETED,
+                projectId, requesterId, "문서 \"" + document.getTitle() + "\" 삭제됨"));
     }
 
     /** Internal use (dashboard search) — caller already verified membership. */

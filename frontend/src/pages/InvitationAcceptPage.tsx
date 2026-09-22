@@ -29,6 +29,7 @@ export function InvitationAcceptPage() {
         <p className="text-slate-600">초대를 수락하려면 먼저 로그인해주세요.</p>
         <Link
           to="/login"
+          state={{ returnTo: `/invitations/${token}` }}
           className="rounded-lg bg-primary-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700"
         >
           로그인

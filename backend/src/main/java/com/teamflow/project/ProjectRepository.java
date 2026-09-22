@@ -10,6 +10,8 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
 
     Optional<Project> findByIdAndDeletedAtIsNull(Long id);
 
+    boolean existsByIdAndDeletedAtIsNull(Long id);
+
     Page<Project> findByIdInAndDeletedAtIsNull(List<Long> ids, Pageable pageable);
 
     Page<Project> findByIdInAndDeletedAtIsNullAndStatus(List<Long> ids, ProjectStatus status, Pageable pageable);

@@ -19,6 +19,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 /** 15-test-strategy.md §2 Unit Test. */
@@ -64,9 +66,26 @@ class FileServiceTest {
                 "projects/1/2026/09/uuid_report.pdf", "report.pdf", 1024L, "application/pdf", null);
         when(projectFileRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(userService.getSummary(10L)).thenReturn(new UserSummary(10L, "uploader@teamflow.dev", "Uploader"));
+        when(s3Client.headObject(any(HeadObjectRequest.class)))
+                .thenReturn(HeadObjectResponse.builder().contentLength(1024L).contentType("application/pdf").build());
 
         newService().register(1L, 10L, request);
 
         verify(projectFileRepository).save(argThat(file -> file.getS3Key().equals("projects/1/2026/09/uuid_report.pdf")));
+    }
+
+    @Test
+    void register_whenUploadedObjectSizeDiffers_throwsInvalidFile() {
+        FileRegisterRequest request = new FileRegisterRequest(
+                "projects/1/2026/09/uuid_report.pdf", "report.pdf", 1024L, "application/pdf", null);
+        when(s3Client.headObject(any(HeadObjectRequest.class)))
+                .thenReturn(HeadObjectResponse.builder().contentLength(2048L).contentType("application/pdf").build());
+
+        assertThatThrownBy(() -> newService().register(1L, 10L, request))
+                .isInstanceOf(BusinessException.class)
+                .extracting(e -> ((BusinessException) e).getErrorCode())
+                .isEqualTo(ErrorCode.INVALID_FILE);
+
+        verify(projectFileRepository, never()).save(any());
     }
 }

@@ -3,6 +3,7 @@ package com.teamflow.notification;
 import com.teamflow.auth.UserPrincipal;
 import com.teamflow.common.dto.PageResponse;
 import com.teamflow.notification.dto.NotificationResponse;
+import com.teamflow.notification.dto.UnreadCountResponse;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +37,11 @@ public class NotificationController {
             @AuthenticationPrincipal UserPrincipal principal, @RequestParam(required = false) Boolean isRead,
             @PageableDefault(size = 20) Pageable pageable) {
         return notificationService.list(principal.userId(), isRead, pageable);
+    }
+
+    @GetMapping("/api/notifications/unread-count")
+    public UnreadCountResponse unreadCount(@AuthenticationPrincipal UserPrincipal principal) {
+        return new UnreadCountResponse(notificationService.unreadCount(principal.userId()));
     }
 
     @PatchMapping("/api/notifications/{notificationId}/read")

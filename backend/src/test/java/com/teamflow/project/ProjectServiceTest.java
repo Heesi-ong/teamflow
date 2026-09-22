@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 /** 15-test-strategy.md §2 Unit Test. */
 @ExtendWith(MockitoExtension.class)
@@ -28,9 +29,11 @@ class ProjectServiceTest {
     private ProjectRepository projectRepository;
     @Mock
     private ProjectMemberService projectMemberService;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     private ProjectService newService() {
-        return new ProjectService(projectRepository, projectMemberService);
+        return new ProjectService(projectRepository, projectMemberService, eventPublisher);
     }
 
     @Test
@@ -57,6 +60,21 @@ class ProjectServiceTest {
         service.update(1L, 1L, new ProjectUpdateRequest(null, "New description", null, null, null));
 
         assertThat(project.getName()).isEqualTo("Original");
+    }
+
+    @Test
+    void update_withResolvedInvalidDateRange_throwsInvalidRequest() {
+        Project project = new Project("Original", null, java.time.LocalDate.of(2026, 10, 10),
+                java.time.LocalDate.of(2026, 10, 20), 1L);
+        when(projectRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(project));
+        when(projectMemberService.requireAtLeast(eq(1L), eq(1L), any()))
+                .thenReturn(new ProjectMember(1L, 1L, ProjectRole.OWNER));
+
+        assertThatThrownBy(() -> newService().update(1L, 1L,
+                new ProjectUpdateRequest(null, null, null, java.time.LocalDate.of(2026, 10, 25), null)))
+                .isInstanceOf(BusinessException.class)
+                .extracting(ex -> ((BusinessException) ex).getErrorCode())
+                .isEqualTo(ErrorCode.INVALID_REQUEST);
     }
 
     @Test

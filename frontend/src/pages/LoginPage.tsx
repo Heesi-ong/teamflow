@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '../components/AuthLayout'
 import { authApi } from '../services/authApi'
 import { useAuthStore } from '../store/authStore'
@@ -9,6 +9,12 @@ const inputClass =
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const returnTo = typeof location.state?.returnTo === 'string'
+    && location.state.returnTo.startsWith('/')
+    && !location.state.returnTo.startsWith('//')
+    ? location.state.returnTo
+    : '/dashboard'
   const setAccessToken = useAuthStore((s) => s.setAccessToken)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -22,7 +28,7 @@ export function LoginPage() {
     try {
       const { data } = await authApi.login({ email, password })
       setAccessToken(data.accessToken)
-      navigate('/dashboard')
+      navigate(returnTo, { replace: true })
     } catch (err: any) {
       setError(err.response?.data?.message ?? '로그인에 실패했습니다.')
     } finally {
@@ -36,7 +42,7 @@ export function LoginPage() {
       footer={
         <>
           계정이 없나요?{' '}
-          <Link to="/signup" className="font-medium text-primary-600 hover:text-primary-700">
+          <Link to="/signup" state={{ returnTo }} className="font-medium text-primary-600 hover:text-primary-700">
             회원가입
           </Link>
         </>
@@ -48,6 +54,7 @@ export function LoginPage() {
           placeholder="이메일"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          maxLength={255}
           required
           className={inputClass}
         />
@@ -56,6 +63,7 @@ export function LoginPage() {
           placeholder="비밀번호"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          maxLength={72}
           required
           className={inputClass}
         />

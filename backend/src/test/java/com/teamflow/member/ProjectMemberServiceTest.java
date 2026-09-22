@@ -3,11 +3,14 @@ package com.teamflow.member;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import com.teamflow.common.exception.BusinessException;
 import com.teamflow.common.exception.ErrorCode;
 import com.teamflow.notification.NotificationService;
+import com.teamflow.project.ProjectRepository;
 import com.teamflow.user.UserService;
 import com.teamflow.user.UserSummary;
 import java.util.Map;
@@ -16,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 /** 15-test-strategy.md §2 Unit Test: 권한 검증 로직(requireAtLeast)과 소유권 관련 분기. */
 @ExtendWith(MockitoExtension.class)
@@ -29,9 +33,26 @@ class ProjectMemberServiceTest {
     private UserService userService;
     @Mock
     private NotificationService notificationService;
+    @Mock
+    private ProjectRepository projectRepository;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     private ProjectMemberService newService() {
-        return new ProjectMemberService(projectMemberRepository, invitationRepository, userService, notificationService);
+        lenient().when(projectRepository.existsByIdAndDeletedAtIsNull(anyLong())).thenReturn(true);
+        return new ProjectMemberService(projectMemberRepository, invitationRepository, userService, notificationService,
+                projectRepository, eventPublisher);
+    }
+
+    @Test
+    void requireAtLeast_deletedProject_throwsProjectNotFound() {
+        ProjectMemberService service = newService();
+        when(projectRepository.existsByIdAndDeletedAtIsNull(1L)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.requireAtLeast(1L, 1L, ProjectRole.GUEST))
+                .isInstanceOf(BusinessException.class)
+                .extracting(ex -> ((BusinessException) ex).getErrorCode())
+                .isEqualTo(ErrorCode.PROJECT_NOT_FOUND);
     }
 
     @Test
@@ -111,5 +132,54 @@ class ProjectMemberServiceTest {
 
         assertThat(currentOwner.getRole()).isEqualTo(ProjectRole.ADMIN);
         assertThat(target.getRole()).isEqualTo(ProjectRole.OWNER);
+    }
+
+    @Test
+    void transferOwnership_toSelf_throwsInvalidRequest() {
+        ProjectMember currentOwner = new ProjectMember(1L, 1L, ProjectRole.OWNER);
+        when(projectMemberRepository.findByProjectIdAndUserId(1L, 1L)).thenReturn(Optional.of(currentOwner));
+        when(projectMemberRepository.findById(10L)).thenReturn(Optional.of(currentOwner));
+
+        assertThatThrownBy(() -> newService().transferOwnership(1L, 1L, 10L))
+                .isInstanceOf(BusinessException.class)
+                .extracting(ex -> ((BusinessException) ex).getErrorCode())
+                .isEqualTo(ErrorCode.INVALID_REQUEST);
+    }
+
+    @Test
+    void changeRole_targetIsCurrentOwner_throwsInvalidRequest() {
+        ProjectMember currentOwner = new ProjectMember(1L, 1L, ProjectRole.OWNER);
+        when(projectMemberRepository.findByProjectIdAndUserId(1L, 1L)).thenReturn(Optional.of(currentOwner));
+        when(projectMemberRepository.findById(10L)).thenReturn(Optional.of(currentOwner));
+
+        assertThatThrownBy(() -> newService().changeRole(1L, 1L, 10L, ProjectRole.ADMIN))
+                .isInstanceOf(BusinessException.class)
+                .extracting(ex -> ((BusinessException) ex).getErrorCode())
+                .isEqualTo(ErrorCode.INVALID_REQUEST);
+    }
+
+    @Test
+    void invite_withOwnerRole_throwsInvalidRequest() {
+        ProjectMember admin = new ProjectMember(1L, 1L, ProjectRole.ADMIN);
+        when(projectMemberRepository.findByProjectIdAndUserId(1L, 1L)).thenReturn(Optional.of(admin));
+
+        assertThatThrownBy(() -> newService().invite(1L, 1L,
+                new com.teamflow.member.dto.InviteRequest(null, ProjectRole.OWNER)))
+                .isInstanceOf(BusinessException.class)
+                .extracting(ex -> ((BusinessException) ex).getErrorCode())
+                .isEqualTo(ErrorCode.INVALID_REQUEST);
+    }
+
+    @Test
+    void acceptInvitation_emailDoesNotMatch_throwsForbidden() {
+        Invitation invitation = new Invitation(1L, "invited@teamflow.dev", "token", ProjectRole.MEMBER, 1L,
+                java.time.OffsetDateTime.now().plusDays(1));
+        when(invitationRepository.findByToken("token")).thenReturn(Optional.of(invitation));
+        when(userService.getSummary(2L)).thenReturn(new UserSummary(2L, "other@teamflow.dev", "Other"));
+
+        assertThatThrownBy(() -> newService().acceptInvitation("token", 2L))
+                .isInstanceOf(BusinessException.class)
+                .extracting(ex -> ((BusinessException) ex).getErrorCode())
+                .isEqualTo(ErrorCode.FORBIDDEN);
     }
 }

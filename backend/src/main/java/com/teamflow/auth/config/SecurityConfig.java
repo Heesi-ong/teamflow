@@ -2,6 +2,7 @@ package com.teamflow.auth.config;
 
 import com.teamflow.auth.JwtAuthenticationFilter;
 import com.teamflow.auth.JwtTokenProvider;
+import jakarta.servlet.DispatcherType;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,6 +40,10 @@ public class SecurityConfig {
                 .formLogin(AbstractHttpConfigurer::disable)
                 .exceptionHandling(handling -> handling.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .authorizeHttpRequests(auth -> auth
+                        // SSE 연결 완료/오류 시 컨테이너가 만드는 비동기 재디스패치는 최초 REQUEST에서
+                        // 이미 인증됐다. stateless 필터가 이 재디스패치를 다시 인증하려 하면 토큰이 없는
+                        // ASYNC/ERROR 단계에서 403을 만들고, 이미 커밋된 SSE 응답에 예외를 쓰려다 실패한다.
+                        .dispatcherTypeMatchers(DispatcherType.ASYNC, DispatcherType.ERROR).permitAll()
                         // 16-monitoring-design.md: /actuator/prometheus는 nginx로 외부에 노출되지 않고
                         // Docker 내부 네트워크로만 Prometheus가 스크래핑하므로 인증 없이 허용한다.
                         .requestMatchers("/actuator/health", "/actuator/prometheus", "/api/auth/signup", "/api/auth/login", "/api/auth/refresh")

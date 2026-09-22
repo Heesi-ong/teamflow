@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 /** 15-test-strategy.md §2 Unit Test. */
 @ExtendWith(MockitoExtension.class)
@@ -30,9 +31,11 @@ class DocumentServiceTest {
     private ProjectMemberService projectMemberService;
     @Mock
     private UserService userService;
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     private DocumentService newService() {
-        return new DocumentService(documentRepository, projectMemberService, userService);
+        return new DocumentService(documentRepository, projectMemberService, userService, eventPublisher);
     }
 
     @Test

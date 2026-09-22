@@ -48,6 +48,8 @@ services:
       # 확인해서 넣는다 — 이름이 겹치면 Render가 다른 URL을 배정하므로 대시보드에서 재확인.
       - key: VITE_API_BASE_URL
         sync: false
+      - key: VITE_FILE_STORAGE_ENABLED
+        value: "false"
     routes:
       - type: rewrite
         source: /*

@@ -16,6 +16,11 @@ export function NotificationBell() {
     queryFn: () => notificationApi.list(),
     enabled: !!accessToken,
   })
+  const unreadCountQuery = useQuery({
+    queryKey: ['notifications', 'unread-count'],
+    queryFn: notificationApi.unreadCount,
+    enabled: !!accessToken,
+  })
 
   // 10-realtime-architecture.md §1.1: EventSource는 커스텀 헤더를 지원하지 않아 Access Token을
   // 쿼리 파라미터로 전달한다. accessToken이 바뀌면(재발급 등) 연결을 다시 맺는다.
@@ -41,7 +46,7 @@ export function NotificationBell() {
   if (!accessToken) return null
 
   const notifications = notificationsQuery.data?.content ?? []
-  const unreadCount = notifications.filter((n) => !n.isRead).length
+  const unreadCount = unreadCountQuery.data ?? 0
 
   function handleClick(n: Notification) {
     if (!n.isRead) markReadMutation.mutate(n.id)

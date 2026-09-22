@@ -63,6 +63,10 @@ public class NotificationService {
         return PageResponse.of(page.map(NotificationResponse::from));
     }
 
+    public long unreadCount(Long userId) {
+        return notificationRepository.countByUserIdAndIsRead(userId, false);
+    }
+
     @Transactional
     public NotificationResponse markRead(Long userId, Long notificationId) {
         Notification notification = notificationRepository.findByIdAndUserId(notificationId, userId)

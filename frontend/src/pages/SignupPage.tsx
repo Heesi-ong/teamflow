@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { AuthLayout } from '../components/AuthLayout'
 import { authApi } from '../services/authApi'
 
@@ -8,6 +8,12 @@ const inputClass =
 
 export function SignupPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const returnTo = typeof location.state?.returnTo === 'string'
+    && location.state.returnTo.startsWith('/')
+    && !location.state.returnTo.startsWith('//')
+    ? location.state.returnTo
+    : undefined
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
@@ -20,7 +26,7 @@ export function SignupPage() {
     setSubmitting(true)
     try {
       await authApi.signup({ email, password, name })
-      navigate('/login')
+      navigate('/login', { state: returnTo ? { returnTo } : undefined })
     } catch (err: any) {
       setError(err.response?.data?.message ?? '회원가입에 실패했습니다.')
     } finally {
@@ -34,7 +40,7 @@ export function SignupPage() {
       footer={
         <>
           이미 계정이 있나요?{' '}
-          <Link to="/login" className="font-medium text-primary-600 hover:text-primary-700">
+          <Link to="/login" state={returnTo ? { returnTo } : undefined} className="font-medium text-primary-600 hover:text-primary-700">
             로그인
           </Link>
         </>
@@ -46,6 +52,7 @@ export function SignupPage() {
           placeholder="이름"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          maxLength={100}
           required
           className={inputClass}
         />
@@ -54,6 +61,7 @@ export function SignupPage() {
           placeholder="이메일"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          maxLength={255}
           required
           className={inputClass}
         />
@@ -62,6 +70,7 @@ export function SignupPage() {
           placeholder="비밀번호 (영문+숫자 8자 이상)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          maxLength={72}
           required
           className={inputClass}
         />

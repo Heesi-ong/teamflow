@@ -31,4 +31,9 @@ public abstract class BaseEntity {
     public OffsetDateTime getUpdatedAt() {
         return updatedAt;
     }
+
+    /** Marks an aggregate-only change so JPA auditing and optimistic locking see an update. */
+    protected void touch() {
+        this.updatedAt = OffsetDateTime.now();
+    }
 }

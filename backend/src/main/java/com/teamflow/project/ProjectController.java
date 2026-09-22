@@ -53,7 +53,8 @@ public class ProjectController {
 
     @PatchMapping("/api/projects/{projectId}")
     public ProjectResponse update(
-            @PathVariable Long projectId, @AuthenticationPrincipal UserPrincipal principal, @RequestBody ProjectUpdateRequest request) {
+            @PathVariable Long projectId, @AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody ProjectUpdateRequest request) {
         return projectService.update(projectId, principal.userId(), request);
     }
 
