@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { API_BASE_URL } from '../config'
 import { notificationApi, type Notification } from '../services/notificationApi'
 import { useAuthStore } from '../store/authStore'
 
@@ -20,7 +21,7 @@ export function NotificationBell() {
   // 쿼리 파라미터로 전달한다. accessToken이 바뀌면(재발급 등) 연결을 다시 맺는다.
   useEffect(() => {
     if (!accessToken) return
-    const source = new EventSource(`/api/notifications/subscribe?token=${accessToken}`)
+    const source = new EventSource(`${API_BASE_URL}/api/notifications/subscribe?token=${accessToken}`)
     source.addEventListener('notification', () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
     })

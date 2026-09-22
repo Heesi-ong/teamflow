@@ -4,7 +4,6 @@ import com.teamflow.auth.dto.LoginRequest;
 import com.teamflow.auth.dto.SignupRequest;
 import com.teamflow.auth.dto.SignupResponse;
 import com.teamflow.auth.dto.TokenResponse;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -64,7 +63,7 @@ public class AuthController {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE, refreshToken)
                 .httpOnly(true)
                 .secure(jwtProperties.isCookieSecure())
-                .sameSite("Strict")
+                .sameSite(jwtProperties.getCookieSameSite())
                 .path("/api/auth")
                 .maxAge(java.time.Duration.ofDays(14))
                 .build();
@@ -72,10 +71,13 @@ public class AuthController {
     }
 
     private void clearRefreshCookie(HttpServletResponse response) {
-        Cookie cookie = new Cookie(REFRESH_COOKIE, null);
-        cookie.setHttpOnly(true);
-        cookie.setPath("/api/auth");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+        ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE, "")
+                .httpOnly(true)
+                .secure(jwtProperties.isCookieSecure())
+                .sameSite(jwtProperties.getCookieSameSite())
+                .path("/api/auth")
+                .maxAge(0)
+                .build();
+        response.addHeader("Set-Cookie", cookie.toString());
     }
 }

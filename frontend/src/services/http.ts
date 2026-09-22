@@ -1,10 +1,11 @@
 import axios from 'axios'
+import { API_BASE_URL } from '../config'
 import { useAuthStore } from '../store/authStore'
 
 // 09-authentication-authorization.md: Access Token은 메모리 보관, 인터셉터에서
 // 401 시 /api/auth/refresh 재시도(Refresh Token은 HttpOnly Cookie로 자동 전송).
 export const http = axios.create({
-  baseURL: '/api',
+  baseURL: `${API_BASE_URL}/api`,
   withCredentials: true,
 })
 
@@ -20,7 +21,7 @@ let refreshPromise: Promise<string | null> | null = null
 
 export async function refreshAccessToken(): Promise<string | null> {
   refreshPromise ??= axios
-    .post<{ accessToken: string }>('/api/auth/refresh', null, { withCredentials: true })
+    .post<{ accessToken: string }>(`${API_BASE_URL}/api/auth/refresh`, null, { withCredentials: true })
     .then((res) => res.data.accessToken)
     .catch(() => null)
     .finally(() => {

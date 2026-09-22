@@ -1,6 +1,7 @@
 import { Client } from '@stomp/stompjs'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { WS_BASE_URL } from '../config'
 import { chatApi, type ChatMessage } from '../services/chatApi'
 import { useAuthStore } from '../store/authStore'
 
@@ -22,9 +23,8 @@ export function ChatPage() {
   // 10-realtime-architecture.md §2.1: 인증은 STOMP CONNECT 프레임의 Authorization 헤더로 전달한다.
   useEffect(() => {
     if (!accessToken) return
-    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws'
     const client = new Client({
-      brokerURL: `${protocol}://${window.location.host}/ws/chat`,
+      brokerURL: `${WS_BASE_URL}/ws/chat`,
       connectHeaders: { Authorization: `Bearer ${accessToken}` },
       reconnectDelay: 2000,
       onConnect: () => {

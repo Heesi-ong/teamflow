@@ -222,6 +222,7 @@ project-root/
 │   ├── 18-error-handling-policy.md
 │   ├── 19-logging-audit-policy.md
 │   ├── 20-development-roadmap.md
+│   ├── 21-free-deployment-guide.md    카드 등록 없이 Render+Neon+Upstash로 무료 배포하는 절차
 │   └── diagrams/wireframes/           화면 설계 목업 이미지 (06번 문서 8장에서 참조)
 ├── backend/                           Spring Boot (Modular Monolith) — Phase 10(Deployment/Monitoring) 완료
 │   ├── src/main/java/com/teamflow/    auth/user/project/member/task/comment/notification/
@@ -236,6 +237,7 @@ project-root/
 ├── docker-compose.dev.yml             PostgreSQL 16 + Redis 7 + MinIO(S3 호환, 로컬 개발용)
 ├── docker-compose.prod.yml            nginx + backend + postgres + redis + prometheus + grafana + exporters
 ├── .env.prod.example                  운영 환경변수 예시 (실제 값은 .env로, Git 미포함)
+├── render.yaml                        Render Blueprint (무료 배포용 Backend/Frontend 서비스 정의)
 └── README.md
 ```
 
@@ -273,6 +275,10 @@ docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 **주의**: `main` merge 시 GitHub Actions가 이미지를 빌드해 GHCR에 푸시하는 것까지는 Secrets 없이 동작합니다. 그러나 실제 EC2로의 SSH 배포(`deploy.yml`의 `deploy` job)는 `EC2_HOST`/`EC2_SSH_KEY` 등 Repository Secrets와 실제 프로비저닝된 EC2 인스턴스가 있어야 동작하며, 현재는 준비되어 있지 않아 자동으로 skip됩니다. TLS(443)도 실제 도메인/인증서가 있어야 하므로 `nginx.conf`는 우선 80으로 구성했습니다.
+
+### 카드 등록 없이 무료로 배포하기 (Render + Neon + Upstash)
+
+EC2는 실제 과금이 발생합니다. 비용 없이 배포하고 싶다면 [21-free-deployment-guide.md](./docs/21-free-deployment-guide.md)를 따라 Render(Backend/Frontend, [render.yaml](./render.yaml)) + Neon(PostgreSQL) + Upstash(Redis) 조합으로 배포할 수 있습니다. 이 경로는 프론트/백엔드가 서로 다른 origin이라 CORS + `SameSite=None` 쿠키가 필요해 백엔드에 `render`라는 별도 Spring 프로필을 추가했고, 로컬에서 CORS 허용/차단, `Secure; HttpOnly; SameSite=None` 쿠키 발급, `PORT` 환경변수 바인딩까지 직접 확인했습니다. 파일 업로드(S3)와 Prometheus/Grafana 모니터링은 이 무료 조합에 올릴 곳이 없어 범위 밖입니다.
 
 ## Development Roadmap
 

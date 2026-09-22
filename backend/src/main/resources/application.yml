@@ -1,3 +1,8 @@
+server:
+  # Render는 서비스가 PORT 환경변수로 지정된 포트를 리슨하길 기대한다. 그 외(EC2/로컬)는
+  # PORT가 설정되지 않으므로 기존과 동일하게 8080을 쓴다.
+  port: ${PORT:8080}
+
 spring:
   application:
     name: backend
@@ -113,4 +118,46 @@ teamflow:
     region: ${S3_REGION:ap-northeast-2}
     access-key: ${AWS_ACCESS_KEY_ID}
     secret-key: ${AWS_SECRET_ACCESS_KEY}
+    path-style-access: false
+
+---
+# Render(Backend/Frontend) + Neon(PostgreSQL) + Upstash(Redis) 무료 티어 배포.
+# EC2(prod 프로필)와 달리 프론트/백엔드가 서로 다른 origin이라 CORS + SameSite=None이 필요하고,
+# Neon/Upstash 모두 TLS 필수다. 파일 업로드(S3)는 이 무료 배포 범위 밖이라 값을 비워두면
+# 해당 기능만 런타임에 실패한다(앱 기동 자체에는 영향 없음).
+spring:
+  config:
+    activate:
+      on-profile: render
+  datasource:
+    # Neon 대시보드의 "Direct connection"을 쓴다 — Hikari가 자체적으로 커넥션을 유지하므로
+    # PgBouncer "Pooled connection"(Transaction mode)을 얹으면 Hibernate의 Prepared Statement와
+    # 충돌할 수 있다. 예: jdbc:postgresql://ep-xxx.neon.tech/teamflow?sslmode=require
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD}
+      ssl:
+        enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+teamflow:
+  jwt:
+    secret: ${JWT_SECRET}
+    cookie-same-site: None
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+  s3:
+    # AWS SDK가 빈 문자열은 기동 시점에 거부하므로(Access key ID cannot be blank) 값이 없으면
+    # placeholder로 기동은 시키고, 파일 업로드 기능만 사용 시 인증 실패로 실패하게 한다.
+    bucket: ${S3_BUCKET:unconfigured}
+    region: ${S3_REGION:ap-northeast-2}
+    access-key: ${AWS_ACCESS_KEY_ID:unconfigured}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:unconfigured}
     path-style-access: false
