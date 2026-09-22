@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { gsap } from 'gsap'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { TaskDetailModal } from '../components/TaskDetailModal'
+import { PRIORITY_BADGE, STATUS_ACCENT } from '../lib/taskVisuals'
 import { projectApi } from '../services/projectApi'
 import { STATUS_LABELS, TASK_STATUSES, taskApi, type Task, type TaskStatus } from '../services/taskApi'
 
@@ -16,6 +18,14 @@ export function KanbanBoardPage() {
   )
   const [showCreate, setShowCreate] = useState(false)
   const [title, setTitle] = useState('')
+  const boardRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.from('[data-anim="column"]', { opacity: 0, y: 16, duration: 0.4, stagger: 0.08, ease: 'power2.out' })
+    }, boardRef)
+    return () => ctx.revert()
+  }, [])
 
   function closeTaskModal() {
     setOpenTaskId(null)
@@ -56,11 +66,14 @@ export function KanbanBoardPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <Link to={`/projects/${id}`} className="text-sm text-blue-600 underline">
+      <div className="mb-5 flex items-center justify-between pr-14">
+        <Link to={`/projects/${id}`} className="text-sm font-medium text-slate-500 hover:text-slate-700">
           ← 프로젝트로
         </Link>
-        <button onClick={() => setShowCreate(true)} className="rounded bg-blue-600 px-3 py-2 text-white">
+        <button
+          onClick={() => setShowCreate(true)}
+          className="rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700"
+        >
           + Task
         </button>
       </div>
@@ -71,54 +84,78 @@ export function KanbanBoardPage() {
             e.preventDefault()
             if (title.trim()) createMutation.mutate()
           }}
-          className="mb-4 flex gap-2"
+          className="mb-5 flex gap-2"
         >
           <input
             autoFocus
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Task 제목"
-            className="flex-1 rounded border border-slate-300 px-3 py-2"
+            className="flex-1 rounded-lg border border-slate-300 px-3.5 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100"
           />
-          <button type="submit" className="rounded bg-blue-600 px-3 py-2 text-white">
+          <button type="submit" className="rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-semibold text-white">
             생성
           </button>
-          <button type="button" onClick={() => setShowCreate(false)} className="rounded bg-slate-200 px-3 py-2">
+          <button
+            type="button"
+            onClick={() => setShowCreate(false)}
+            className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50"
+          >
             취소
           </button>
         </form>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {TASK_STATUSES.map((status) => (
-          <div
-            key={status}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => handleDrop(e, status)}
-            className="min-h-[300px] rounded border border-slate-200 bg-slate-100 p-3"
-          >
-            <h2 className="mb-2 text-sm font-semibold text-slate-600">{STATUS_LABELS[status]}</h2>
-            <div className="space-y-2">
-              {tasksQuery.data?.content
-                .filter((task) => task.status === status)
-                .map((task) => (
-                  <div
-                    key={task.id}
-                    draggable
-                    onDragStart={(e) => e.dataTransfer.setData('text/plain', String(task.id))}
-                    onClick={() => setOpenTaskId(task.id)}
-                    className="cursor-pointer rounded border border-slate-200 bg-white p-3 shadow-sm hover:border-blue-400"
-                  >
-                    <p className="text-sm font-medium text-slate-800">{task.title}</p>
-                    <div className="mt-1 flex items-center justify-between text-xs text-slate-400">
-                      <span>{task.priority}</span>
-                      {task.assigneeId && <span>{membersById.get(task.assigneeId)?.userName ?? '담당자'}</span>}
+      <div ref={boardRef} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {TASK_STATUSES.map((status) => {
+          const tasksInColumn = tasksQuery.data?.content.filter((task) => task.status === status) ?? []
+          return (
+            <div
+              key={status}
+              data-anim="column"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => handleDrop(e, status)}
+              className="min-h-[300px] rounded-xl border border-slate-200 bg-slate-100/70 p-3"
+            >
+              <h2 className="mb-3 flex items-center gap-2 px-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <span className={`h-2 w-2 rounded-full ${STATUS_ACCENT[status]}`} />
+                {STATUS_LABELS[status]}
+                <span className="ml-auto rounded-full bg-white px-1.5 py-0.5 text-[11px] font-medium text-slate-400">
+                  {tasksInColumn.length}
+                </span>
+              </h2>
+              <div className="space-y-2">
+                {tasksInColumn.map((task) => {
+                  const assignee = task.assigneeId ? membersById.get(task.assigneeId) : undefined
+                  return (
+                    <div
+                      key={task.id}
+                      draggable
+                      onDragStart={(e) => e.dataTransfer.setData('text/plain', String(task.id))}
+                      onClick={() => setOpenTaskId(task.id)}
+                      className="cursor-pointer rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-md"
+                    >
+                      <p className="text-sm font-medium text-slate-800">{task.title}</p>
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${PRIORITY_BADGE[task.priority]}`}>
+                          {task.priority}
+                        </span>
+                        {assignee && (
+                          <span
+                            title={assignee.userName}
+                            className="flex h-5 w-5 items-center justify-center rounded-full bg-primary-100 text-[10px] font-semibold text-primary-700"
+                          >
+                            {assignee.userName.slice(0, 1)}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {openTaskId && (

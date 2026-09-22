@@ -2,10 +2,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRef, useState } from 'react'
 import { commentApi } from '../services/commentApi'
 import { fileApi } from '../services/fileApi'
+import { PRIORITY_BADGE } from '../lib/taskVisuals'
 import type { ProjectMember } from '../services/projectApi'
 import { taskApi, type TaskPriority } from '../services/taskApi'
 
 const PRIORITIES: TaskPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
+
+const selectClass =
+  'rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100'
+const smallInputClass =
+  'flex-1 rounded-lg border border-slate-300 px-2.5 py-1.5 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100'
+const smallButtonClass = 'rounded-lg bg-slate-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800'
 
 export function TaskDetailModal({
   projectId,
@@ -129,27 +136,27 @@ export function TaskDetailModal({
   const task = taskQuery.data
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" onClick={onClose}>
       <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded bg-white p-6 shadow-lg"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {taskQuery.isLoading && <p className="text-slate-500">불러오는 중...</p>}
+        {taskQuery.isLoading && <p className="text-sm text-slate-500">불러오는 중...</p>}
         {task && (
           <>
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between gap-2">
               <input
                 defaultValue={task.title}
                 key={`title-${task.version}`}
                 onBlur={(e) => e.target.value !== task.title && updateFieldsMutation.mutate({ title: e.target.value })}
-                className="w-full rounded border border-transparent px-1 text-lg font-semibold hover:border-slate-200 focus:border-slate-300"
+                className="w-full rounded-lg border border-transparent px-1.5 py-0.5 text-lg font-semibold text-slate-900 hover:border-slate-200 focus:border-primary-400 focus:outline-none"
               />
-              <button onClick={onClose} className="ml-2 text-slate-400 hover:text-slate-600">
+              <button onClick={onClose} className="mt-1 shrink-0 text-slate-400 hover:text-slate-600">
                 ✕
               </button>
             </div>
             {conflict && (
-              <p className="mt-1 text-sm text-red-500">
+              <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-700">
                 다른 사용자가 먼저 이 Task를 수정했습니다. 최신 내용으로 갱신했습니다 — 변경 사항을 다시 반영해주세요.
               </p>
             )}
@@ -158,17 +165,23 @@ export function TaskDetailModal({
               key={`desc-${task.version}`}
               placeholder="설명 없음"
               onBlur={(e) => e.target.value !== (task.description ?? '') && updateFieldsMutation.mutate({ description: e.target.value })}
-              className="mt-2 w-full rounded border border-transparent px-1 text-sm text-slate-600 hover:border-slate-200 focus:border-slate-300"
+              className="mt-2 w-full rounded-lg border border-transparent px-1.5 py-1 text-sm text-slate-600 hover:border-slate-200 focus:border-primary-400 focus:outline-none"
               rows={3}
             />
 
+            <div className="mt-3 flex items-center gap-2">
+              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${PRIORITY_BADGE[task.priority]}`}>
+                {task.priority}
+              </span>
+            </div>
+
             <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
-              <label className="flex flex-col gap-1">
+              <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
                 상태
                 <select
                   value={task.status}
                   onChange={(e) => updateStatusMutation.mutate(e.target.value as any)}
-                  className="rounded border border-slate-300 px-2 py-1"
+                  className={selectClass}
                 >
                   {['TODO', 'IN_PROGRESS', 'REVIEW', 'DONE'].map((s) => (
                     <option key={s} value={s}>
@@ -177,12 +190,12 @@ export function TaskDetailModal({
                   ))}
                 </select>
               </label>
-              <label className="flex flex-col gap-1">
+              <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
                 우선순위
                 <select
                   value={task.priority}
                   onChange={(e) => updateFieldsMutation.mutate({ priority: e.target.value as TaskPriority })}
-                  className="rounded border border-slate-300 px-2 py-1"
+                  className={selectClass}
                 >
                   {PRIORITIES.map((p) => (
                     <option key={p} value={p}>
@@ -191,12 +204,12 @@ export function TaskDetailModal({
                   ))}
                 </select>
               </label>
-              <label className="flex flex-col gap-1">
+              <label className="flex flex-col gap-1 text-xs font-medium text-slate-500">
                 담당자
                 <select
                   value={task.assigneeId ?? ''}
                   onChange={(e) => e.target.value && updateAssigneeMutation.mutate(Number(e.target.value))}
-                  className="rounded border border-slate-300 px-2 py-1"
+                  className={selectClass}
                 >
                   <option value="">미지정</option>
                   {members.map((m) => (
@@ -208,22 +221,23 @@ export function TaskDetailModal({
               </label>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-5">
               <h3 className="text-sm font-semibold text-slate-700">Checklist</h3>
-              <ul className="mt-1 space-y-1">
+              <ul className="mt-2 space-y-1.5">
                 {task.checklists.map((item) => (
                   <li key={item.id} className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
                       checked={item.isDone}
                       onChange={(e) => toggleChecklistMutation.mutate({ checklistId: item.id, isDone: e.target.checked })}
+                      className="h-4 w-4 rounded border-slate-300 text-primary-600 focus:ring-primary-400"
                     />
                     <span className={item.isDone ? 'flex-1 text-slate-400 line-through' : 'flex-1 text-slate-700'}>
                       {item.content}
                     </span>
                     <button
                       onClick={() => removeChecklistMutation.mutate(item.id)}
-                      className="text-xs text-red-400 hover:underline"
+                      className="text-xs text-slate-400 hover:text-red-500"
                     >
                       삭제
                     </button>
@@ -235,30 +249,30 @@ export function TaskDetailModal({
                   e.preventDefault()
                   if (checklistInput.trim()) addChecklistMutation.mutate(checklistInput.trim())
                 }}
-                className="mt-2 flex gap-2"
+                className="mt-2.5 flex gap-2"
               >
                 <input
                   value={checklistInput}
                   onChange={(e) => setChecklistInput(e.target.value)}
                   placeholder="체크리스트 항목 추가"
-                  className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm"
+                  className={smallInputClass}
                 />
-                <button type="submit" className="rounded bg-slate-600 px-2 py-1 text-sm text-white">
+                <button type="submit" className={smallButtonClass}>
                   추가
                 </button>
               </form>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-5">
               <h3 className="text-sm font-semibold text-slate-700">댓글</h3>
-              <ul className="mt-1 space-y-2">
+              <ul className="mt-2 space-y-2">
                 {commentsQuery.data?.content.map((c) => (
-                  <li key={c.id} className="rounded bg-slate-50 p-2 text-sm">
+                  <li key={c.id} className="rounded-lg bg-slate-50 p-2.5 text-sm">
                     <div className="flex items-center justify-between">
                       <span className="font-medium text-slate-700">{c.authorName}</span>
                       <button
                         onClick={() => removeCommentMutation.mutate(c.id)}
-                        className="text-xs text-red-400 hover:underline"
+                        className="text-xs text-slate-400 hover:text-red-500"
                       >
                         삭제
                       </button>
@@ -272,24 +286,24 @@ export function TaskDetailModal({
                   e.preventDefault()
                   if (commentInput.trim()) addCommentMutation.mutate(commentInput.trim())
                 }}
-                className="mt-2 flex gap-2"
+                className="mt-2.5 flex gap-2"
               >
                 <input
                   value={commentInput}
                   onChange={(e) => setCommentInput(e.target.value)}
                   placeholder="댓글 작성 (@이름 으로 멘션)"
-                  className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm"
+                  className={smallInputClass}
                 />
-                <button type="submit" className="rounded bg-slate-600 px-2 py-1 text-sm text-white">
+                <button type="submit" className={smallButtonClass}>
                   작성
                 </button>
               </form>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-5">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-slate-700">첨부 파일</h3>
-                <button onClick={() => fileInputRef.current?.click()} className="text-xs text-blue-600 hover:underline">
+                <button onClick={() => fileInputRef.current?.click()} className="text-xs font-medium text-primary-600 hover:text-primary-700">
                   + 파일 첨부
                 </button>
                 <input
@@ -304,13 +318,13 @@ export function TaskDetailModal({
                 />
               </div>
               {uploadFileMutation.isPending && <p className="mt-1 text-xs text-slate-400">업로드 중...</p>}
-              <ul className="mt-1 space-y-1">
+              <ul className="mt-2 space-y-1">
                 {filesQuery.data?.content.map((f) => (
                   <li key={f.id} className="flex items-center justify-between text-sm">
-                    <button onClick={() => handleFileDownload(f.id)} className="truncate text-blue-600 hover:underline">
+                    <button onClick={() => handleFileDownload(f.id)} className="truncate text-primary-600 hover:underline">
                       {f.fileName}
                     </button>
-                    <button onClick={() => removeFileMutation.mutate(f.id)} className="text-xs text-red-400 hover:underline">
+                    <button onClick={() => removeFileMutation.mutate(f.id)} className="text-xs text-slate-400 hover:text-red-500">
                       삭제
                     </button>
                   </li>
@@ -319,10 +333,7 @@ export function TaskDetailModal({
               </ul>
             </div>
 
-            <button
-              onClick={() => deleteMutation.mutate()}
-              className="mt-6 text-sm text-red-500 hover:underline"
-            >
+            <button onClick={() => deleteMutation.mutate()} className="mt-6 text-sm font-medium text-red-500 hover:text-red-600">
               Task 삭제
             </button>
           </>
