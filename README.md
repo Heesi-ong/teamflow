@@ -223,10 +223,10 @@ project-root/
 │   ├── 19-logging-audit-policy.md
 │   ├── 20-development-roadmap.md
 │   └── diagrams/wireframes/           화면 설계 목업 이미지 (06번 문서 8장에서 참조)
-├── backend/                           Spring Boot (Modular Monolith) — Phase 7(Document/File) 완료
+├── backend/                           Spring Boot (Modular Monolith) — Phase 8(Dashboard) 완료
 │   └── src/main/java/com/teamflow/    auth/user/project/member/task/comment/notification/
-│                                      chat/document/file/activity/common 12개 Domain Package
-├── frontend/                          React + Vite — Phase 7(Document/File) 완료
+│                                      chat/document/file/activity/dashboard/common 13개 Domain Package
+├── frontend/                          React + Vite — Phase 8(Dashboard) 완료
 ├── docker-compose.dev.yml             PostgreSQL 16 + Redis 7 + MinIO(S3 호환, 로컬 개발용)
 ├── docker-compose.prod.yml            상태: Planned
 └── README.md
@@ -234,7 +234,7 @@ project-root/
 
 ## How to Run
 
-Phase 7(Document/File) 기준까지 구현되어 있습니다. 프로젝트 문서 CRUD와 S3 Presigned URL 기반 파일 업로드/다운로드(Task 첨부 포함)가 동작합니다. 운영은 AWS S3를 쓰고, 로컬 개발은 `docker-compose.dev.yml`의 MinIO(S3 호환)를 같은 AWS SDK 코드 경로로 그대로 사용합니다. Dashboard 등 나머지 도메인 API는 Phase 8부터 추가됩니다.
+Phase 8(Dashboard) 기준까지 구현되어 있습니다. 프로젝트 대시보드(Task 통계, 마감임박, 최근 활동)가 Redis 캐시(TTL 60초 + Task 생성/상태변경/삭제 시 즉시 무효화)로 동작하고, Task/문서/댓글 통합 검색과 Calendar 화면이 추가되었습니다. Test/Deployment 등 나머지는 Phase 9부터 추가됩니다.
 
 ```bash
 # 1. 인프라(PostgreSQL, Redis, MinIO) 기동

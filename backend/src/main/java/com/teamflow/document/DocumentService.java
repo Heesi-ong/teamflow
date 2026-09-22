@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,6 +68,13 @@ public class DocumentService {
         Document document = findInProject(projectId, documentId);
         requireAuthorOrAdmin(projectId, requesterId, document);
         documentRepository.delete(document);
+    }
+
+    /** Internal use (dashboard search) — caller already verified membership. */
+    public List<DocumentSummaryResponse> search(Long projectId, String keyword, int limit) {
+        List<Document> documents = documentRepository.search(projectId, keyword, PageRequest.of(0, limit));
+        Map<Long, String> authorNames = authorNames(documents.stream().map(Document::getAuthorId).toList());
+        return documents.stream().map(d -> DocumentSummaryResponse.from(d, authorNames.get(d.getAuthorId()))).toList();
     }
 
     private void requireAuthorOrAdmin(Long projectId, Long requesterId, Document document) {

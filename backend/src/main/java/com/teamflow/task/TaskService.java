@@ -1,6 +1,7 @@
 package com.teamflow.task;
 
 import com.teamflow.activity.TaskCreatedEvent;
+import com.teamflow.activity.TaskDeletedEvent;
 import com.teamflow.activity.TaskStatusChangedEvent;
 import com.teamflow.common.dto.PageResponse;
 import com.teamflow.common.exception.BusinessException;
@@ -17,11 +18,14 @@ import com.teamflow.task.dto.TaskDetailResponse;
 import com.teamflow.task.dto.TaskResponse;
 import com.teamflow.task.dto.TaskStatusUpdateRequest;
 import com.teamflow.task.dto.TaskUpdateRequest;
+import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -132,6 +136,31 @@ public class TaskService {
         Task task = findInProject(projectId, taskId);
         requireAuthorOrAdmin(projectId, taskId, userId, task);
         taskRepository.delete(task);
+        eventPublisher.publishEvent(new TaskDeletedEvent(projectId, taskId));
+    }
+
+    /** Internal read for other modules' reporting needs (dashboard) — caller already verified membership. */
+    public Map<TaskStatus, Long> countByStatus(Long projectId) {
+        return Arrays.stream(TaskStatus.values())
+                .collect(Collectors.toMap(status -> status, status -> taskRepository.countByProjectIdAndStatus(projectId, status)));
+    }
+
+    public long countAll(Long projectId) {
+        return taskRepository.countByProjectId(projectId);
+    }
+
+    public List<TaskResponse> findDueSoon(Long projectId, int days) {
+        LocalDate today = LocalDate.now();
+        List<Task> tasks = taskRepository.findByProjectIdAndStatusNotAndDueDateBetweenOrderByDueDate(
+                projectId, TaskStatus.DONE, today, today.plusDays(days));
+        Map<Long, Long> assigneeByTask = currentAssignees(tasks.stream().map(Task::getId).toList());
+        return tasks.stream().map(t -> TaskResponse.from(t, assigneeByTask.get(t.getId()))).toList();
+    }
+
+    public List<TaskResponse> search(Long projectId, String keyword, int limit) {
+        Page<Task> page = taskRepository.search(projectId, null, null, null, keyword, PageRequest.of(0, limit));
+        Map<Long, Long> assigneeByTask = currentAssignees(page.getContent().stream().map(Task::getId).toList());
+        return page.getContent().stream().map(t -> TaskResponse.from(t, assigneeByTask.get(t.getId()))).toList();
     }
 
     private Task findInProject(Long projectId, Long taskId) {

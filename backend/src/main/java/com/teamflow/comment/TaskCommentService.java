@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -83,6 +84,13 @@ public class TaskCommentService {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
         taskCommentRepository.delete(comment);
+    }
+
+    /** Internal use (dashboard search) — caller already verified membership. */
+    public List<TaskCommentResponse> search(Long projectId, String keyword, int limit) {
+        List<TaskComment> comments = taskCommentRepository.search(projectId, keyword, PageRequest.of(0, limit));
+        var authorNames = userService.getSummaries(comments.stream().map(TaskComment::getAuthorId).toList());
+        return comments.stream().map(c -> TaskCommentResponse.from(c, authorNames.get(c.getAuthorId()).name())).toList();
     }
 
     private void notifyMentions(Task task, Long authorId, String content) {

@@ -367,18 +367,26 @@ Task를 수정하는 아래 3개 API(정보 수정/상태 변경/담당자 변�
 ## 10. Dashboard / Activity / Search
 
 ### `GET /api/projects/{projectId}/dashboard`
-- Description: 프로젝트 대시보드 통계 조회 (Redis 캐시 적용)
+- Description: 프로젝트 대시보드 통계 조회 (Redis 캐시 적용, TTL 60초 + Task 생성/상태변경/삭제 시 즉시 무효화)
+- Permission: 프로젝트 멤버
 - Response 200: `{ totalTasks, doneTasks, inProgressTasks, todoTasks, progressRate, dueSoonTasks, memberCount, recentActivities }`
+  - `inProgressTasks`는 IN_PROGRESS와 REVIEW를 합산한 값이다(별도 REVIEW 필드 없음)
+  - `dueSoonTasks`: 마감일이 오늘부터 3일 이내이고 완료되지 않은 Task 목록
+- Error: `FORBIDDEN`(403)
 
 ### `GET /api/projects/{projectId}/activities`
 - Description: 활동 기록 조회
 - Query Parameter: `page`, `size`
+- Permission: 프로젝트 멤버
 - Response 200: `Page<ActivityLogResponse>`
+- Error: `FORBIDDEN`(403)
 
 ### `GET /api/projects/{projectId}/search`
-- Description: Task/Document/Comment 통합 검색
+- Description: Task/Document/Comment 통합 검색 (PostgreSQL `ILIKE`)
 - Query Parameter: `keyword`, `type?`(TASK|DOCUMENT|COMMENT)
-- Response 200: `{ tasks: [...], documents: [...], comments: [...] }`
+- Permission: 프로젝트 멤버
+- Response 200: `{ tasks: [...], documents: [...], comments: [...] }` — `type` 미지정 시 세 종류 모두, 지정 시 해당 종류만 채워지고 나머지는 빈 배열
+- Error: `FORBIDDEN`(403)
 
 ---
 

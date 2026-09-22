@@ -14,6 +14,8 @@ import { KanbanBoardPage } from '../pages/KanbanBoardPage'
 import { ChatPage } from '../pages/ChatPage'
 import { DocumentsPage } from '../pages/DocumentsPage'
 import { FilesPage } from '../pages/FilesPage'
+import { ProjectDashboardPage } from '../pages/ProjectDashboardPage'
+import { CalendarPage } from '../pages/CalendarPage'
 import { NotificationBell } from '../components/NotificationBell'
 import { refreshAccessToken } from '../services/http'
 import { useAuthStore } from '../store/authStore'
@@ -59,6 +61,8 @@ export function App() {
           <Route path="/projects/:projectId/chat" element={<ChatPage />} />
           <Route path="/projects/:projectId/documents" element={<DocumentsPage />} />
           <Route path="/projects/:projectId/files" element={<FilesPage />} />
+          <Route path="/projects/:projectId/dashboard" element={<ProjectDashboardPage />} />
+          <Route path="/projects/:projectId/calendar" element={<CalendarPage />} />
           <Route path="/projects/:projectId/members" element={<ProjectMembersPage />} />
           <Route path="/invitations/:token" element={<InvitationAcceptPage />} />
         </Routes>

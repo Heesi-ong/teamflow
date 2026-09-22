@@ -1,5 +1,7 @@
 package com.teamflow.task;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,6 +12,13 @@ import org.springframework.data.domain.Pageable;
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
     Optional<Task> findByIdAndProjectId(Long id, Long projectId);
+
+    long countByProjectId(Long projectId);
+
+    long countByProjectIdAndStatus(Long projectId, TaskStatus status);
+
+    List<Task> findByProjectIdAndStatusNotAndDueDateBetweenOrderByDueDate(
+            Long projectId, TaskStatus excludedStatus, LocalDate from, LocalDate to);
 
     @Query("""
             SELECT t FROM Task t

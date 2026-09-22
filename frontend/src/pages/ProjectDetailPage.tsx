@@ -27,9 +27,15 @@ export function ProjectDetailPage() {
           <p className="mt-2 text-sm text-slate-400">
             {data.startDate ?? '?'} ~ {data.endDate ?? '?'}
           </p>
-          <div className="mt-4 flex gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link to={`/projects/${data.id}/dashboard`} className="inline-block rounded bg-blue-600 px-3 py-2 text-white">
+              Dashboard
+            </Link>
             <Link to={`/projects/${data.id}/board`} className="inline-block rounded bg-blue-600 px-3 py-2 text-white">
               Kanban Board
+            </Link>
+            <Link to={`/projects/${data.id}/calendar`} className="inline-block rounded bg-blue-600 px-3 py-2 text-white">
+              Calendar
             </Link>
             <Link to={`/projects/${data.id}/chat`} className="inline-block rounded bg-blue-600 px-3 py-2 text-white">
               채팅

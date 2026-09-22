@@ -61,6 +61,11 @@ public class ProjectMemberService {
         return projectMemberRepository.existsByProjectIdAndUserId(projectId, userId);
     }
 
+    /** Internal use (dashboard) — caller already verified membership. */
+    public long countMembers(Long projectId) {
+        return projectMemberRepository.findByProjectId(projectId).size();
+    }
+
     public List<Long> findProjectIdsByUser(Long userId) {
         return projectMemberRepository.findByUserId(userId).stream().map(ProjectMember::getProjectId).toList();
     }
