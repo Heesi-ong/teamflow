@@ -7,7 +7,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.teamflow.activity.TaskStatusChangedEvent;
+import com.teamflow.activity.ActivityActionType;
+import com.teamflow.activity.ProjectActivityEvent;
 import com.teamflow.common.exception.BusinessException;
 import com.teamflow.common.exception.ErrorCode;
 import com.teamflow.member.ProjectMember;
@@ -95,7 +96,8 @@ class TaskServiceTest {
 
         service.changeStatus(1L, 10L, 1L, new TaskStatusUpdateRequest(TaskStatus.TODO, 0L));
 
-        verify(eventPublisher).publishEvent(eq(new TaskStatusChangedEvent(1L, 1L, 10L, "Title", "DONE", "TODO")));
+        verify(eventPublisher).publishEvent(eq(new ProjectActivityEvent(
+                ActivityActionType.TASK_STATUS_CHANGED, 1L, 1L, "Task \"Title\" 상태 변경: DONE → TODO")));
     }
 
     @Test

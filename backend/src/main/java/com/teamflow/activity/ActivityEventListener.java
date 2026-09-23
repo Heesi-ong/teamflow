@@ -15,24 +15,6 @@ public class ActivityEventListener {
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void onTaskCreated(TaskCreatedEvent event) {
-        activityLogService.record(ActivityActionType.TASK_CREATED, event.projectId(), event.actorId(),
-                "Task \"" + event.taskTitle() + "\" 생성됨");
-    }
-
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void onTaskStatusChanged(TaskStatusChangedEvent event) {
-        activityLogService.record(ActivityActionType.TASK_STATUS_CHANGED, event.projectId(), event.actorId(),
-                "Task \"" + event.taskTitle() + "\" 상태 변경: " + event.beforeStatus() + " → " + event.afterStatus());
-    }
-
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-    public void onCommentAdded(CommentAddedEvent event) {
-        activityLogService.record(ActivityActionType.COMMENT_ADDED, event.projectId(), event.actorId(),
-                "Task \"" + event.taskTitle() + "\"에 댓글이 작성됨");
-    }
-
-    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onProjectActivity(ProjectActivityEvent event) {
         activityLogService.record(event.actionType(), event.projectId(), event.actorId(), event.description());
     }

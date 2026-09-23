@@ -33,10 +33,8 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
 	implementation 'software.amazon.awssdk:s3:2.46.7'
-	compileOnly 'org.projectlombok:lombok'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	runtimeOnly 'org.postgresql:postgresql'
-	annotationProcessor 'org.projectlombok:lombok'
 	testImplementation 'org.springframework.boot:spring-boot-starter-actuator-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-data-redis-test'
@@ -52,9 +50,7 @@ dependencies {
 	testImplementation 'org.testcontainers:junit-jupiter:1.21.3'
 	testImplementation 'org.testcontainers:postgresql:1.21.3'
 	testImplementation 'com.redis:testcontainers-redis:2.2.4'
-	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-	testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
 tasks.named('test') {

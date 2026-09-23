@@ -22,9 +22,9 @@ public class JwtTokenProvider {
     private final Duration refreshTokenExpiry;
 
     public JwtTokenProvider(JwtProperties properties) {
-        this.key = Keys.hmacShaKeyFor(properties.getSecret().getBytes());
-        this.accessTokenExpiry = Duration.ofMinutes(properties.getAccessTokenExpiryMinutes());
-        this.refreshTokenExpiry = Duration.ofDays(properties.getRefreshTokenExpiryDays());
+        this.key = Keys.hmacShaKeyFor(properties.secret().getBytes());
+        this.accessTokenExpiry = Duration.ofMinutes(properties.accessTokenExpiryMinutes());
+        this.refreshTokenExpiry = Duration.ofDays(properties.refreshTokenExpiryDays());
     }
 
     public String generateAccessToken(Long userId, String email) {

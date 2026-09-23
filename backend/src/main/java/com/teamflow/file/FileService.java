@@ -93,7 +93,7 @@ public class FileService {
 
         String s3Key = buildKey(projectId, request.fileName());
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(s3Properties.getBucket())
+                .bucket(s3Properties.bucket())
                 .key(s3Key)
                 .contentType(request.contentType())
                 .contentLength(request.fileSize())
@@ -119,7 +119,7 @@ public class FileService {
         HeadObjectResponse uploadedObject;
         try {
             uploadedObject = s3Client.headObject(HeadObjectRequest.builder()
-                    .bucket(s3Properties.getBucket())
+                    .bucket(s3Properties.bucket())
                     .key(request.s3Key())
                     .build());
         } catch (S3Exception e) {
@@ -163,7 +163,7 @@ public class FileService {
         var presignRequest = GetObjectPresignRequest.builder()
                 .signatureDuration(DOWNLOAD_TTL)
                 .getObjectRequest(GetObjectRequest.builder()
-                        .bucket(s3Properties.getBucket())
+                        .bucket(s3Properties.bucket())
                         .key(file.getS3Key())
                         .responseContentDisposition("attachment")
                         .build())
@@ -181,7 +181,7 @@ public class FileService {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
         try {
-            s3Client.deleteObject(DeleteObjectRequest.builder().bucket(s3Properties.getBucket()).key(file.getS3Key()).build());
+            s3Client.deleteObject(DeleteObjectRequest.builder().bucket(s3Properties.bucket()).key(file.getS3Key()).build());
         } catch (S3Exception e) {
             // 11-file-storage-design.md §6: S3 삭제 실패해도 메타데이터는 삭제한다 (잔여 객체는 별도 배치로 정리 — Optional).
             log.warn("Failed to delete S3 object {} for file {}: {}", file.getS3Key(), fileId, e.getMessage());

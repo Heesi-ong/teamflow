@@ -1,6 +1,7 @@
 package com.teamflow.comment;
 
-import com.teamflow.activity.CommentAddedEvent;
+import com.teamflow.activity.ActivityActionType;
+import com.teamflow.activity.ProjectActivityEvent;
 import com.teamflow.comment.dto.TaskCommentCreateRequest;
 import com.teamflow.comment.dto.TaskCommentResponse;
 import com.teamflow.common.dto.PageResponse;
@@ -59,7 +60,8 @@ public class TaskCommentService {
         TaskComment comment = taskCommentRepository.save(new TaskComment(taskId, authorId, request.content()));
 
         notifyMentions(task, authorId, request.content());
-        eventPublisher.publishEvent(new CommentAddedEvent(task.getProjectId(), authorId, taskId, task.getTitle()));
+        eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.COMMENT_ADDED,
+                task.getProjectId(), authorId, "Task \"" + task.getTitle() + "\"에 댓글이 작성됨"));
 
         String authorName = userService.getSummary(authorId).name();
         return TaskCommentResponse.from(comment, authorName);

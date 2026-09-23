@@ -2,7 +2,6 @@ package com.teamflow.auth;
 
 import java.time.Duration;
 import java.util.List;
-import java.util.Objects;
 import com.teamflow.common.exception.BusinessException;
 import com.teamflow.common.exception.ErrorCode;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -36,15 +35,6 @@ public class RefreshTokenService {
     public void save(Long userId, String refreshToken) {
         try {
             redisTemplate.opsForValue().set(KEY_PREFIX + userId, refreshToken, expiry);
-        } catch (RuntimeException ex) {
-            throw unavailable();
-        }
-    }
-
-    public boolean isValid(Long userId, String refreshToken) {
-        try {
-            String stored = redisTemplate.opsForValue().get(KEY_PREFIX + userId);
-            return Objects.equals(stored, refreshToken);
         } catch (RuntimeException ex) {
             throw unavailable();
         }

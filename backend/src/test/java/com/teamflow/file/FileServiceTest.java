@@ -42,7 +42,7 @@ class FileServiceTest {
 
     private FileService newService() {
         return new FileService(projectFileRepository, projectMemberService, taskRepository, userService,
-                s3Presigner, s3Client, new S3Properties());
+                s3Presigner, s3Client, new S3Properties("bucket", "us-east-1", null, "key", "secret", false));
     }
 
     @Test

@@ -28,11 +28,11 @@ public class S3Config {
     @Bean
     public S3Presigner s3Presigner() {
         S3Presigner.Builder builder = S3Presigner.builder()
-                .region(Region.of(properties.getRegion()))
+                .region(Region.of(properties.region()))
                 .credentialsProvider(credentialsProvider())
                 .serviceConfiguration(serviceConfiguration());
-        if (properties.getEndpoint() != null && !properties.getEndpoint().isBlank()) {
-            builder.endpointOverride(URI.create(properties.getEndpoint()));
+        if (properties.endpoint() != null && !properties.endpoint().isBlank()) {
+            builder.endpointOverride(URI.create(properties.endpoint()));
         }
         return builder.build();
     }
@@ -40,20 +40,20 @@ public class S3Config {
     @Bean
     public S3Client s3Client() {
         S3ClientBuilder builder = S3Client.builder()
-                .region(Region.of(properties.getRegion()))
+                .region(Region.of(properties.region()))
                 .credentialsProvider(credentialsProvider())
                 .serviceConfiguration(serviceConfiguration());
-        if (properties.getEndpoint() != null && !properties.getEndpoint().isBlank()) {
-            builder.endpointOverride(URI.create(properties.getEndpoint()));
+        if (properties.endpoint() != null && !properties.endpoint().isBlank()) {
+            builder.endpointOverride(URI.create(properties.endpoint()));
         }
         return builder.build();
     }
 
     private StaticCredentialsProvider credentialsProvider() {
-        return StaticCredentialsProvider.create(AwsBasicCredentials.create(properties.getAccessKey(), properties.getSecretKey()));
+        return StaticCredentialsProvider.create(AwsBasicCredentials.create(properties.accessKey(), properties.secretKey()));
     }
 
     private S3Configuration serviceConfiguration() {
-        return S3Configuration.builder().pathStyleAccessEnabled(properties.isPathStyleAccess()).build();
+        return S3Configuration.builder().pathStyleAccessEnabled(properties.pathStyleAccess()).build();
     }
 }

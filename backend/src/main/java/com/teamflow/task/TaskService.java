@@ -1,8 +1,5 @@
 package com.teamflow.task;
 
-import com.teamflow.activity.TaskCreatedEvent;
-import com.teamflow.activity.TaskDeletedEvent;
-import com.teamflow.activity.TaskStatusChangedEvent;
 import com.teamflow.activity.ActivityActionType;
 import com.teamflow.activity.ProjectActivityEvent;
 import com.teamflow.common.dto.PageResponse;
@@ -70,7 +67,8 @@ public class TaskService {
                 notifyAssigned(task, assigneeId);
             }
         }
-        eventPublisher.publishEvent(new TaskCreatedEvent(projectId, authorId, task.getId(), task.getTitle()));
+        eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.TASK_CREATED,
+                projectId, authorId, "Task \"" + task.getTitle() + "\" 생성됨"));
         return TaskResponse.from(task, assigneeId);
     }
 
@@ -112,8 +110,8 @@ public class TaskService {
         checkVersion(task, request.version());
         TaskStatus before = task.getStatus();
         task.changeStatus(request.status());
-        eventPublisher.publishEvent(
-                new TaskStatusChangedEvent(projectId, userId, taskId, task.getTitle(), before.name(), request.status().name()));
+        eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.TASK_STATUS_CHANGED,
+                projectId, userId, "Task \"" + task.getTitle() + "\" 상태 변경: " + before + " → " + request.status()));
         // 03-functional-specification.md §3.8: "담당자 외 관련자에게 Notification 생성" — 작성자에게 알린다.
         if (!task.getAuthorId().equals(userId)) {
             notificationService.create(task.getAuthorId(), NotificationType.TASK_STATUS_CHANGED,
@@ -152,7 +150,6 @@ public class TaskService {
         Task task = findInProject(projectId, taskId);
         requireAuthorOrAdmin(projectId, taskId, userId, task);
         taskRepository.delete(task);
-        eventPublisher.publishEvent(new TaskDeletedEvent(projectId, taskId));
         eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.TASK_DELETED,
                 projectId, userId, "Task \"" + task.getTitle() + "\" 삭제됨"));
     }

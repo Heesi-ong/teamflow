@@ -63,8 +63,8 @@ public class AuthController {
     private void setRefreshCookie(HttpServletResponse response, String refreshToken) {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE, refreshToken)
                 .httpOnly(true)
-                .secure(jwtProperties.isCookieSecure())
-                .sameSite(jwtProperties.getCookieSameSite())
+                .secure(jwtProperties.cookieSecure())
+                .sameSite(jwtProperties.cookieSameSite())
                 .path("/api/auth")
                 .maxAge(java.time.Duration.ofDays(14))
                 .build();
@@ -74,8 +74,8 @@ public class AuthController {
     private void clearRefreshCookie(HttpServletResponse response) {
         ResponseCookie cookie = ResponseCookie.from(REFRESH_COOKIE, "")
                 .httpOnly(true)
-                .secure(jwtProperties.isCookieSecure())
-                .sameSite(jwtProperties.getCookieSameSite())
+                .secure(jwtProperties.cookieSecure())
+                .sameSite(jwtProperties.cookieSameSite())
                 .path("/api/auth")
                 .maxAge(0)
                 .build();
