@@ -19,7 +19,7 @@ const PROJECT_STATUSES: ProjectStatus[] = ['PLANNING', 'IN_PROGRESS', 'ON_HOLD',
 
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 text-center shadow-sm">
+    <div className="flex min-h-[84px] flex-col items-center justify-center rounded-2xl border border-slate-200/90 bg-white p-4 text-center shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
       <p className="text-2xl font-bold text-slate-900">{value}</p>
       <p className="mt-1 text-xs font-medium text-slate-500">{label}</p>
     </div>
@@ -28,7 +28,7 @@ function StatCard({ label, value }: { label: string; value: number | string }) {
 
 function WidgetCard({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="min-h-[132px] rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
       <h2 className="text-sm font-semibold text-slate-700">{title}</h2>
       {children}
     </div>
@@ -62,21 +62,21 @@ function ProjectDashboard({ id }: { id: number }) {
           e.preventDefault()
           setSearchTerm(keyword.trim())
         }}
-        className="mt-4 flex gap-2"
+        className="mt-5 flex gap-2"
       >
         <input
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
           placeholder="Task / 문서 / 댓글 검색"
-          className="flex-1 rounded-lg border border-slate-300 px-3.5 py-2 text-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-100"
+          className="h-10 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3.5 text-sm shadow-sm outline-none transition placeholder:text-slate-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
         />
-        <button type="submit" className="rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-semibold text-white hover:bg-primary-700">
+        <button type="submit" className="h-10 rounded-xl bg-primary-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-200">
           검색
         </button>
       </form>
 
       {searchTerm && searchQuery.data && (
-        <div className="mt-3 rounded-xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
+        <div className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
           <p className="font-semibold text-slate-900">"{searchTerm}" 검색 결과</p>
           <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
@@ -117,7 +117,7 @@ function ProjectDashboard({ id }: { id: number }) {
 
       {stats && (
         <>
-          <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-5">
+          <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-5">
             <StatCard label="전체" value={stats.totalTasks} />
             <StatCard label="TODO" value={stats.todoTasks} />
             <StatCard label="진행중" value={stats.inProgressTasks} />
@@ -125,17 +125,17 @@ function ProjectDashboard({ id }: { id: number }) {
             <StatCard label="팀원" value={stats.memberCount} />
           </div>
 
-          <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mt-5 rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
             <div className="flex items-center justify-between text-sm">
               <span className="font-semibold text-slate-700">진행률</span>
               <span className="text-slate-500">{stats.progressRate}%</span>
             </div>
-            <div className="mt-2 h-2 w-full rounded-full bg-slate-100">
-              <div className="h-2 rounded-full bg-primary-500" style={{ width: `${stats.progressRate}%` }} />
+            <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full rounded-full bg-primary-500 transition-[width]" style={{ width: `${stats.progressRate}%` }} />
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             <WidgetCard title="마감 임박 Task">
               <ul className="mt-2 space-y-1 text-sm">
                 {stats.dueSoonTasks.map((t) => (
@@ -255,22 +255,22 @@ function ProjectSettings({ project, role }: { project: Project; role?: ProjectRo
   if (!canEdit) return null
 
   return (
-    <section className="mt-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="mt-5 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_2px_8px_rgba(15,23,42,0.06)] sm:p-6">
       <h2 className="font-semibold text-slate-900">프로젝트 설정</h2>
       <div className="mt-3 grid gap-3">
-        <input value={name} maxLength={200} onChange={(e) => setName(e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-        <select value={status} onChange={(e) => setStatus(e.target.value as ProjectStatus)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+        <input value={name} maxLength={200} onChange={(e) => setName(e.target.value)} aria-label="프로젝트 이름" className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
+        <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} aria-label="프로젝트 설명" className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
+        <select value={status} onChange={(e) => setStatus(e.target.value as ProjectStatus)} aria-label="프로젝트 상태" className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100">
           {PROJECT_STATUSES.map((value) => <option key={value}>{value}</option>)}
         </select>
         <div className="grid grid-cols-2 gap-3">
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-          <input type="date" value={endDate} min={startDate || undefined} onChange={(e) => setEndDate(e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} aria-label="프로젝트 시작일" className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
+          <input type="date" value={endDate} min={startDate || undefined} onChange={(e) => setEndDate(e.target.value)} aria-label="프로젝트 종료일" className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
         </div>
       </div>
       {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
       <div className="mt-4 flex items-center gap-3">
-        <button disabled={!name.trim() || updateMutation.isPending} onClick={() => updateMutation.mutate()} className="rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-semibold text-white disabled:opacity-50">
+        <button disabled={!name.trim() || updateMutation.isPending} onClick={() => updateMutation.mutate()} className="rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50">
           변경 저장
         </button>
         {role === 'OWNER' && (
@@ -295,18 +295,18 @@ export function ProjectDetailPage() {
   const currentRole = membersQuery.data?.find((member) => member.userId === meQuery.data?.id)?.role
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl bg-slate-50 p-6">
-      <Link to="/projects" className="text-sm font-medium text-slate-500 hover:text-slate-700">
+    <main className="mx-auto min-h-screen max-w-6xl overflow-x-hidden bg-slate-50 px-4 py-5 sm:p-6">
+      <Link to="/projects" className="inline-flex items-center text-sm font-medium text-slate-500 transition hover:text-slate-700">
         ← 프로젝트 목록
       </Link>
       {isLoading && <p className="mt-4 text-sm text-slate-500">불러오는 중...</p>}
       {isError && <p className="mt-4 text-sm text-red-500">프로젝트를 찾을 수 없거나 접근 권한이 없습니다.</p>}
       {data && (
         <>
-          <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mt-3 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_2px_8px_rgba(15,23,42,0.06)] sm:p-6">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-slate-900">{data.name}</h1>
-              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{data.status}</span>
+              <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{data.name}</h1>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold tracking-wide text-slate-600">{data.status}</span>
             </div>
             <p className="mt-2 text-slate-600">{data.description || '설명 없음'}</p>
             <p className="mt-2 text-sm text-slate-400">
@@ -317,7 +317,7 @@ export function ProjectDetailPage() {
                 <Link
                   key={link.to}
                   to={link.to}
-                  className="rounded-lg border border-slate-200 px-3 py-2.5 text-center text-sm font-medium text-slate-700 transition hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
+                  className="flex h-11 items-center justify-center rounded-xl border border-slate-200 px-3 text-center text-sm font-medium text-slate-700 transition hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
                 >
                   {link.label}
                 </Link>
