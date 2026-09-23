@@ -24,6 +24,7 @@ import org.springframework.stereotype.Component;
 public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
     private static final Pattern PROJECT_TOPIC_PATTERN = Pattern.compile("^/topic/projects/(\\d+)/chat$");
+    private static final Pattern PROJECT_SEND_PATTERN = Pattern.compile("^/app/projects/(\\d+)/chat\\.send$");
 
     private final JwtTokenProvider jwtTokenProvider;
     private final ChatService chatService;
@@ -43,6 +44,8 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
             authenticate(accessor);
         } else if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
             authorizeSubscription(accessor);
+        } else if (StompCommand.SEND.equals(accessor.getCommand())) {
+            authorizeSend(accessor);
         }
         return message;
     }
@@ -70,6 +73,21 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
         }
         Long projectId = Long.valueOf(matcher.group(1));
         StompPrincipal principal = (StompPrincipal) accessor.getUser();
+        if (principal == null || !chatService.isMember(projectId, principal.userId())) {
+            throw new MessagingException("Not a member of project " + projectId);
+        }
+    }
+
+    private void authorizeSend(StompHeaderAccessor accessor) {
+        String destination = accessor.getDestination();
+        Matcher matcher = destination == null ? null : PROJECT_SEND_PATTERN.matcher(destination);
+        if (matcher == null || !matcher.matches()) {
+            // Simple Broker가 /topic, /user를 직접 처리하므로 클라이언트가 broker 목적지로
+            // 발행하면 ChatWebSocketController의 멤버십 검증을 우회할 수 있다.
+            throw new MessagingException("Only application chat destinations may be sent");
+        }
+        StompPrincipal principal = (StompPrincipal) accessor.getUser();
+        Long projectId = Long.valueOf(matcher.group(1));
         if (principal == null || !chatService.isMember(projectId, principal.userId())) {
             throw new MessagingException("Not a member of project " + projectId);
         }

@@ -172,4 +172,17 @@ class TaskServiceTest {
         assertThat(task.getUpdatedAt()).isNotNull();
         verify(taskRepository).flush();
     }
+
+    @Test
+    void changeAssignee_clearAssignmentDeletesCurrentAssignee() {
+        Task task = taskFixture(1L, 1L);
+        when(taskRepository.findByIdAndProjectId(10L, 1L)).thenReturn(Optional.of(task));
+        when(projectMemberService.requireAtLeast(1L, 1L, ProjectRole.GUEST))
+                .thenReturn(new ProjectMember(1L, 1L, ProjectRole.OWNER));
+
+        newService().changeAssignee(1L, 10L, 1L, new TaskAssigneeUpdateRequest(null, 0L, true));
+
+        verify(taskAssigneeRepository).deleteByTaskId(10L);
+        verify(taskRepository).flush();
+    }
 }

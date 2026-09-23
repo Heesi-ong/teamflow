@@ -68,7 +68,7 @@ export function TaskDetailModal({
   })
 
   const updateAssigneeMutation = useMutation({
-    mutationFn: (assigneeId: number) => taskApi.updateAssignee(projectId, taskId, assigneeId, taskQuery.data!.version),
+    mutationFn: (assigneeId: number | null) => taskApi.updateAssignee(projectId, taskId, assigneeId, taskQuery.data!.version),
     onSuccess: invalidate,
     onError: handleConflict,
   })
@@ -214,7 +214,7 @@ export function TaskDetailModal({
                 담당자
                 <select
                   value={task.assigneeId ?? ''}
-                  onChange={(e) => e.target.value && updateAssigneeMutation.mutate(Number(e.target.value))}
+                  onChange={(e) => updateAssigneeMutation.mutate(e.target.value ? Number(e.target.value) : null)}
                   className={selectClass}
                 >
                   <option value="">미지정</option>

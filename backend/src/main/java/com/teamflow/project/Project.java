@@ -54,7 +54,8 @@ public class Project extends BaseEntity {
         this.ownerId = ownerId;
     }
 
-    public void update(String name, String description, ProjectStatus status, LocalDate startDate, LocalDate endDate) {
+    public void update(String name, String description, ProjectStatus status,
+            LocalDate startDate, boolean updateStartDate, LocalDate endDate, boolean updateEndDate) {
         if (name != null) {
             this.name = name;
         }
@@ -64,10 +65,10 @@ public class Project extends BaseEntity {
         if (status != null) {
             this.status = status;
         }
-        if (startDate != null) {
+        if (updateStartDate) {
             this.startDate = startDate;
         }
-        if (endDate != null) {
+        if (updateEndDate) {
             this.endDate = endDate;
         }
     }

@@ -25,6 +25,8 @@ export interface ProjectUpdateBody {
   status?: ProjectStatus
   startDate?: string | null
   endDate?: string | null
+  clearStartDate?: boolean
+  clearEndDate?: boolean
 }
 
 export interface PageResponse<T> {

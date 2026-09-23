@@ -121,8 +121,8 @@ class ProjectMemberServiceTest {
     void transferOwnership_swapsRolesBetweenCurrentAndNewOwner() {
         ProjectMember currentOwner = new ProjectMember(1L, 1L, ProjectRole.OWNER);
         ProjectMember target = new ProjectMember(1L, 2L, ProjectRole.MEMBER);
-        when(projectMemberRepository.findByProjectIdAndUserId(1L, 1L)).thenReturn(Optional.of(currentOwner));
-        when(projectMemberRepository.findById(20L)).thenReturn(Optional.of(target));
+        when(projectMemberRepository.findByProjectIdAndUserIdForUpdate(1L, 1L)).thenReturn(Optional.of(currentOwner));
+        when(projectMemberRepository.findByIdForUpdate(20L)).thenReturn(Optional.of(target));
         when(userService.getSummaries(any())).thenReturn(Map.of(
                 1L, new UserSummary(1L, "owner@teamflow.dev", "Owner"),
                 2L, new UserSummary(2L, "mate@teamflow.dev", "Mate")));
@@ -137,8 +137,8 @@ class ProjectMemberServiceTest {
     @Test
     void transferOwnership_toSelf_throwsInvalidRequest() {
         ProjectMember currentOwner = new ProjectMember(1L, 1L, ProjectRole.OWNER);
-        when(projectMemberRepository.findByProjectIdAndUserId(1L, 1L)).thenReturn(Optional.of(currentOwner));
-        when(projectMemberRepository.findById(10L)).thenReturn(Optional.of(currentOwner));
+        when(projectMemberRepository.findByProjectIdAndUserIdForUpdate(1L, 1L)).thenReturn(Optional.of(currentOwner));
+        when(projectMemberRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(currentOwner));
 
         assertThatThrownBy(() -> newService().transferOwnership(1L, 1L, 10L))
                 .isInstanceOf(BusinessException.class)

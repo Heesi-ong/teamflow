@@ -128,21 +128,23 @@ public class TaskService {
         Task task = findInProject(projectId, taskId);
         requireAuthorOrAdmin(projectId, taskId, userId, task);
         checkVersion(task, request.version());
-        if (!projectMemberService.isMember(projectId, request.assigneeId())) {
+        if (!request.clearAssignee() && !projectMemberService.isMember(projectId, request.assigneeId())) {
             throw new BusinessException(ErrorCode.MEMBER_NOT_FOUND);
         }
         taskAssigneeRepository.deleteByTaskId(taskId);
-        taskAssigneeRepository.save(new TaskAssignee(taskId, request.assigneeId()));
+        if (!request.clearAssignee()) {
+            taskAssigneeRepository.save(new TaskAssignee(taskId, request.assigneeId()));
+        }
         // 담당자는 별도 테이블에 있지만 Task aggregate의 일부다. Task도 dirty 상태로 만들어
         // @Version을 증가시켜 동시 담당자 변경을 감지한다.
         task.markAssigneeChanged();
         taskRepository.flush();
         eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.TASK_ASSIGNEE_CHANGED,
                 projectId, userId, "Task \"" + task.getTitle() + "\" 담당자가 변경됨"));
-        if (!request.assigneeId().equals(userId)) {
+        if (!request.clearAssignee() && !request.assigneeId().equals(userId)) {
             notifyAssigned(task, request.assigneeId());
         }
-        return TaskResponse.from(task, request.assigneeId());
+        return TaskResponse.from(task, request.clearAssignee() ? null : request.assigneeId());
     }
 
     @Transactional

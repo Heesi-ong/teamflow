@@ -1,6 +1,10 @@
 package com.teamflow.notification.config;
 
 import com.teamflow.notification.RedisNotificationListener;
+import jakarta.annotation.PreDestroy;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -22,8 +26,14 @@ import org.springframework.data.redis.listener.RedisMessageListenerContainer;
 public class NotificationRedisConfig {
 
     private static final Logger log = LoggerFactory.getLogger(NotificationRedisConfig.class);
-    private static final int MAX_RETRIES = 5;
-    private static final long RETRY_DELAY_MS = 10_000;
+    private static final long INITIAL_RETRY_DELAY_MS = 5_000;
+    private static final long MAX_RETRY_DELAY_MS = 60_000;
+
+    private final ScheduledExecutorService retryExecutor = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread thread = new Thread(r, "redis-notification-listener-retry");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     @Bean
     public RedisMessageListenerContainer redisMessageListenerContainer(
@@ -38,33 +48,30 @@ public class NotificationRedisConfig {
     @EventListener(ApplicationReadyEvent.class)
     public void startListenerContainer(ApplicationReadyEvent event) {
         RedisMessageListenerContainer container = event.getApplicationContext().getBean(RedisMessageListenerContainer.class);
-        Thread thread = new Thread(() -> startWithRetry(container), "redis-notification-listener-start");
-        thread.setDaemon(true);
-        thread.start();
+        scheduleStart(container, 0);
     }
 
-    private void startWithRetry(RedisMessageListenerContainer container) {
-        for (int attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-            try {
-                container.start();
-                return;
-            } catch (Exception e) {
-                log.warn("Redis Pub/Sub listener failed to start (attempt {}/{}): {}", attempt, MAX_RETRIES, e.getMessage());
-                if (attempt == MAX_RETRIES) {
-                    log.error("Giving up on Redis Pub/Sub listener after {} attempts — realtime notifications disabled until restart.",
-                            MAX_RETRIES);
-                    return;
-                }
-                sleep(RETRY_DELAY_MS);
-            }
-        }
+    private void scheduleStart(RedisMessageListenerContainer container, long delayMs) {
+        retryExecutor.schedule(() -> startWithRetry(container, delayMs), delayMs, TimeUnit.MILLISECONDS);
     }
 
-    private void sleep(long millis) {
+    private void startWithRetry(RedisMessageListenerContainer container, long previousDelayMs) {
+        long nextDelayMs = Math.min(
+                Math.max(INITIAL_RETRY_DELAY_MS, previousDelayMs * 2), MAX_RETRY_DELAY_MS);
         try {
-            Thread.sleep(millis);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            if (!container.isRunning()) {
+                container.start();
+            }
+            log.info("Redis Pub/Sub listener started");
+        } catch (Exception e) {
+            log.warn("Redis Pub/Sub listener failed to start; retrying in {} ms: {}",
+                    nextDelayMs, e.getMessage());
+            scheduleStart(container, nextDelayMs);
         }
+    }
+
+    @PreDestroy
+    public void shutdownRetryExecutor() {
+        retryExecutor.shutdownNow();
     }
 }

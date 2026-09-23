@@ -12,6 +12,7 @@ import com.teamflow.project.dto.ProjectCreateRequest;
 import com.teamflow.project.dto.ProjectResponse;
 import com.teamflow.project.dto.ProjectSummaryResponse;
 import com.teamflow.project.dto.ProjectUpdateRequest;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -66,13 +67,19 @@ public class ProjectService {
         Project project = findActive(projectId);
         projectMemberService.requireAtLeast(projectId, userId, ProjectRole.ADMIN);
         // name은 부분 업데이트라 null(=변경 안 함)은 허용하지만, 빈 문자열로 지우는 건 막는다.
-        if (request.name() != null && request.name().isBlank()) {
+        if (request.getName() != null && request.getName().isBlank()) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
-        validateDateRange(
-                request.startDate() != null ? request.startDate() : project.getStartDate(),
-                request.endDate() != null ? request.endDate() : project.getEndDate());
-        project.update(request.name(), request.description(), request.status(), request.startDate(), request.endDate());
+        LocalDate nextStartDate = request.isClearStartDate()
+                ? null
+                : request.hasStartDate() ? request.getStartDate() : project.getStartDate();
+        LocalDate nextEndDate = request.isClearEndDate()
+                ? null
+                : request.hasEndDate() ? request.getEndDate() : project.getEndDate();
+        validateDateRange(nextStartDate, nextEndDate);
+        project.update(request.getName(), request.getDescription(), request.getStatus(),
+                nextStartDate, request.hasStartDate() || request.isClearStartDate(),
+                nextEndDate, request.hasEndDate() || request.isClearEndDate());
         eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.PROJECT_UPDATED,
                 projectId, userId, "프로젝트 정보가 변경됨"));
         return ProjectResponse.from(project);

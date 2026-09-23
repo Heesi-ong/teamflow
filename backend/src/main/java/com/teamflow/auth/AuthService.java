@@ -8,6 +8,7 @@ import com.teamflow.common.exception.BusinessException;
 import com.teamflow.common.exception.ErrorCode;
 import com.teamflow.user.User;
 import com.teamflow.user.UserRepository;
+import com.teamflow.user.EmailNormalizer;
 import java.util.regex.Pattern;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -38,19 +39,20 @@ public class AuthService {
 
     @Transactional
     public SignupResponse signup(SignupRequest request) {
-        if (userRepository.existsByEmail(request.email())) {
+        String email = EmailNormalizer.normalize(request.email());
+        if (userRepository.existsByEmail(email)) {
             throw new BusinessException(ErrorCode.EMAIL_ALREADY_EXISTS);
         }
         if (!PASSWORD_FORMAT.matcher(request.password()).matches()) {
             throw new BusinessException(ErrorCode.INVALID_PASSWORD_FORMAT);
         }
-        User user = new User(request.email(), passwordEncoder.encode(request.password()), request.name());
+        User user = new User(email, passwordEncoder.encode(request.password()), request.name());
         userRepository.save(user);
         return new SignupResponse(user.getId(), user.getEmail(), user.getName());
     }
 
     public IssuedTokens login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.email())
+        User user = userRepository.findByEmail(EmailNormalizer.normalize(request.email()))
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_CREDENTIALS));
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
@@ -64,12 +66,15 @@ public class AuthService {
             throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
         }
         Long userId = jwtTokenProvider.getUserId(claims);
-        if (!refreshTokenService.isValid(userId, presentedRefreshToken)) {
-            throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
-        }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN));
-        return issueTokens(user.getId(), user.getEmail());
+        String accessToken = jwtTokenProvider.generateAccessToken(user.getId(), user.getEmail());
+        String replacementRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
+        if (!refreshTokenService.rotate(userId, presentedRefreshToken, replacementRefreshToken)) {
+            throw new BusinessException(ErrorCode.INVALID_REFRESH_TOKEN);
+        }
+        return new IssuedTokens(new TokenResponse(accessToken, jwtTokenProvider.getAccessTokenExpiry().toSeconds()),
+                replacementRefreshToken);
     }
 
     public void logout(Long userId) {

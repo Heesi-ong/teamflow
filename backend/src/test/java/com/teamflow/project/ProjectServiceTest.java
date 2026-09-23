@@ -78,6 +78,23 @@ class ProjectServiceTest {
     }
 
     @Test
+    void update_withExplicitlyClearedDates_removesExistingDates() {
+        Project project = new Project("Original", null, java.time.LocalDate.of(2026, 10, 10),
+                java.time.LocalDate.of(2026, 10, 20), 1L);
+        when(projectRepository.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(project));
+        when(projectMemberService.requireAtLeast(eq(1L), eq(1L), any()))
+                .thenReturn(new ProjectMember(1L, 1L, ProjectRole.OWNER));
+        ProjectUpdateRequest request = new ProjectUpdateRequest();
+        request.setClearStartDate(true);
+        request.setClearEndDate(true);
+
+        newService().update(1L, 1L, request);
+
+        assertThat(project.getStartDate()).isNull();
+        assertThat(project.getEndDate()).isNull();
+    }
+
+    @Test
     void transferOwnership_picksNewOwnerByRole_notByListPosition() {
         // ProjectMemberService.transferOwnership()이 반환하는 리스트에서 "0번째가 새 오너"라는 순서에
         // 기대면 안 된다 — 일부러 이전 오너(now ADMIN)를 0번째에, 새 오너를 1번째에 둬서 순서를 뒤집는다.

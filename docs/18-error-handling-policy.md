@@ -41,6 +41,7 @@ Validation 오류처럼 필드 단위 상세가 필요한 경우 `errors` 배열
 | 입력값 오류 | 400 | `INVALID_REQUEST`, `INVALID_TASK_STATUS` |
 | 리소스 충돌/중복 | 409 | `EMAIL_ALREADY_EXISTS`, `ALREADY_MEMBER` |
 | 만료된 리소스 | 410 | `INVITATION_EXPIRED` |
+| 인증 인프라 일시 장애 | 503 | `AUTH_SERVICE_UNAVAILABLE` |
 | 서버 오류 | 500 | `INTERNAL_SERVER_ERROR` |
 
 ## 4. Custom Exception 설계

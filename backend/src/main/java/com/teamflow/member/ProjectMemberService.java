@@ -12,6 +12,7 @@ import com.teamflow.notification.NotificationType;
 import com.teamflow.project.ProjectRepository;
 import com.teamflow.user.UserService;
 import com.teamflow.user.UserSummary;
+import com.teamflow.user.EmailNormalizer;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -84,9 +85,10 @@ public class ProjectMemberService {
     @Transactional
     public Invitation invite(Long projectId, Long inviterId, InviteRequest request) {
         requireAtLeast(projectId, inviterId, ProjectRole.ADMIN);
+        String invitedEmail = request.email() == null ? null : EmailNormalizer.normalize(request.email());
         Long invitedUserId = null;
-        if (request.email() != null) {
-            invitedUserId = userService.findUserIdByEmail(request.email()).orElse(null);
+        if (invitedEmail != null) {
+            invitedUserId = userService.findUserIdByEmail(invitedEmail).orElse(null);
             if (invitedUserId != null && projectMemberRepository.existsByProjectIdAndUserId(projectId, invitedUserId)) {
                 throw new BusinessException(ErrorCode.ALREADY_MEMBER);
             }
@@ -95,7 +97,7 @@ public class ProjectMemberService {
         if (role == ProjectRole.OWNER) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
-        Invitation invitation = new Invitation(projectId, request.email(), generateToken(), role, inviterId,
+        Invitation invitation = new Invitation(projectId, invitedEmail, generateToken(), role, inviterId,
                 OffsetDateTime.now().plus(INVITATION_EXPIRY));
         invitationRepository.save(invitation);
         eventPublisher.publishEvent(new ProjectActivityEvent(ActivityActionType.MEMBER_INVITED,
@@ -137,7 +139,7 @@ public class ProjectMemberService {
         requireActiveProject(invitation.getProjectId());
         UserSummary acceptingUser = userService.getSummary(userId);
         if (acceptingUser == null || (invitation.getEmail() != null
-                && !invitation.getEmail().trim().equalsIgnoreCase(acceptingUser.email().trim()))) {
+                && !invitation.getEmail().equals(EmailNormalizer.normalize(acceptingUser.email())))) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
         if (projectMemberRepository.existsByProjectIdAndUserId(invitation.getProjectId(), userId)) {
@@ -175,12 +177,21 @@ public class ProjectMemberService {
 
     @Transactional
     public List<ProjectMemberResponse> transferOwnership(Long projectId, Long requesterId, Long memberId) {
-        ProjectMember currentOwner = requireAtLeast(projectId, requesterId, ProjectRole.OWNER);
-        ProjectMember newOwner = getMemberInProject(projectId, memberId);
+        // 현재 OWNER 행을 먼저 잠가 동일 프로젝트의 동시 위임을 직렬화한다.
+        // 두 번째 요청은 첫 번째 트랜잭션 커밋 후 ADMIN 상태를 읽고 거부된다.
+        requireActiveProject(projectId);
+        ProjectMember currentOwner = projectMemberRepository.findByProjectIdAndUserIdForUpdate(projectId, requesterId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.FORBIDDEN));
+        if (!currentOwner.getRole().isAtLeast(ProjectRole.OWNER)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+        ProjectMember newOwner = getMemberInProjectForUpdate(projectId, memberId);
         if (newOwner.getUserId().equals(requesterId)) {
             throw new BusinessException(ErrorCode.INVALID_REQUEST);
         }
         currentOwner.changeRole(ProjectRole.ADMIN);
+        // 향후 프로젝트별 OWNER unique 제약을 추가해도 역할 교환 순서가 안전하도록 먼저 반영한다.
+        projectMemberRepository.flush();
         newOwner.changeRole(ProjectRole.OWNER);
         notificationService.create(newOwner.getUserId(), NotificationType.ANNOUNCEMENT,
                 "프로젝트 소유권이 위임되었습니다.", "/projects/" + projectId);
@@ -219,6 +230,15 @@ public class ProjectMemberService {
 
     private ProjectMember getMemberInProject(Long projectId, Long memberId) {
         ProjectMember member = projectMemberRepository.findById(memberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
+        if (!member.getProjectId().equals(projectId)) {
+            throw new BusinessException(ErrorCode.MEMBER_NOT_FOUND);
+        }
+        return member;
+    }
+
+    private ProjectMember getMemberInProjectForUpdate(Long projectId, Long memberId) {
+        ProjectMember member = projectMemberRepository.findByIdForUpdate(memberId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
         if (!member.getProjectId().equals(projectId)) {
             throw new BusinessException(ErrorCode.MEMBER_NOT_FOUND);

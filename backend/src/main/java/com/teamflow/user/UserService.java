@@ -30,6 +30,6 @@ public class UserService {
     }
 
     public Optional<Long> findUserIdByEmail(String email) {
-        return userRepository.findByEmail(email).map(User::getId);
+        return userRepository.findByEmail(EmailNormalizer.normalize(email)).map(User::getId);
     }
 }

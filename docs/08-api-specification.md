@@ -24,19 +24,19 @@ Base URL: `/api`. 별도 명시가 없는 한 모든 API는 인증(Bearer Access
 - Authentication: 불필요
 - Request Body: `{ email, password }`
 - Response 200: `{ accessToken, accessTokenExpiresIn }` + `Set-Cookie: refreshToken=...`(HttpOnly)
-- Error: `INVALID_CREDENTIALS`(401)
+- Error: `INVALID_CREDENTIALS`(401), `AUTH_SERVICE_UNAVAILABLE`(503)
 
 ### `POST /api/auth/refresh`
 - Description: Access Token 재발급 (Refresh Token Rotation)
 - Authentication: Refresh Token (HttpOnly Cookie)
 - Response 200: `{ accessToken, accessTokenExpiresIn }` + `Set-Cookie: refreshToken=...`(HttpOnly, 회전된 새 값)
-- Error: `INVALID_REFRESH_TOKEN`(401)
+- Error: `INVALID_REFRESH_TOKEN`(401), `AUTH_SERVICE_UNAVAILABLE`(503)
 
 ### `POST /api/auth/logout`
 - Description: 로그아웃, Refresh Token 무효화
 - Authentication: 필요
 - Response 204
-- Error: `UNAUTHORIZED`(401)
+- Error: `UNAUTHORIZED`(401), `AUTH_SERVICE_UNAVAILABLE`(503)
 
 ---
 
@@ -87,7 +87,8 @@ Base URL: `/api`. 별도 명시가 없는 한 모든 API는 인증(Bearer Access
 ### `PATCH /api/projects/{projectId}`
 - Description: 프로젝트 정보/상태 수정
 - Permission: OWNER, ADMIN
-- Request Body: `{ name?, description?, status?, startDate?, endDate? }`
+- Request Body: `{ name?, description?, status?, startDate?, endDate?, clearStartDate?, clearEndDate? }`
+- 날짜 필드는 생략하면 기존 값을 유지하고, `clearStartDate`/`clearEndDate`를 `true`로 보내면 해당 날짜를 삭제한다.
 - Response 200: `ProjectResponse`
 - Error: `FORBIDDEN`(403), `PROJECT_NOT_FOUND`(404)
 
@@ -200,7 +201,7 @@ Task를 수정하는 아래 3개 API(정보 수정/상태 변경/담당자 변�
 ### `PATCH /api/projects/{projectId}/tasks/{taskId}/assignee`
 - Description: 담당자 지정/변경
 - Permission: 작성자, ADMIN 이상
-- Request Body: `{ assigneeId, version }`
+- Request Body: `{ assigneeId?, clearAssignee?, version }` (`clearAssignee=true`이면 담당자 해제)
 - Response 200: `TaskResponse`
 - Error: `MEMBER_NOT_FOUND`(404), `TASK_VERSION_CONFLICT`(409)
 

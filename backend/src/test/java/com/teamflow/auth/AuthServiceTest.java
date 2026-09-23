@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 import com.teamflow.auth.dto.LoginRequest;
 import com.teamflow.auth.dto.SignupRequest;
@@ -12,6 +13,8 @@ import com.teamflow.common.exception.BusinessException;
 import com.teamflow.common.exception.ErrorCode;
 import com.teamflow.user.User;
 import com.teamflow.user.UserRepository;
+import io.jsonwebtoken.Claims;
+import java.time.Duration;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 /** 15-test-strategy.md §2 Unit Test: Service 로직의 분기/예외 검증, Repository는 Mock으로 대체. */
 @ExtendWith(MockitoExtension.class)
@@ -94,5 +98,25 @@ class AuthServiceTest {
                 .isInstanceOf(BusinessException.class)
                 .extracting(ex -> ((BusinessException) ex).getErrorCode())
                 .isEqualTo(ErrorCode.INVALID_CREDENTIALS);
+    }
+
+    @Test
+    void refresh_atomicallyRotatesPresentedToken() {
+        Claims claims = org.mockito.Mockito.mock(Claims.class);
+        User user = new User("owner@teamflow.dev", passwordEncoder.encode("password123"), "Owner");
+        ReflectionTestUtils.setField(user, "id", 1L);
+        when(jwtTokenProvider.parseClaims("presented")).thenReturn(claims);
+        when(jwtTokenProvider.getUserId(claims)).thenReturn(1L);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(jwtTokenProvider.generateAccessToken(1L, "owner@teamflow.dev")).thenReturn("access");
+        when(jwtTokenProvider.generateRefreshToken(1L)).thenReturn("replacement");
+        when(jwtTokenProvider.getAccessTokenExpiry()).thenReturn(Duration.ofMinutes(30));
+        when(refreshTokenService.rotate(1L, "presented", "replacement")).thenReturn(true);
+
+        AuthService.IssuedTokens tokens = newService().refresh("presented");
+
+        assertThat(tokens.body().accessToken()).isEqualTo("access");
+        assertThat(tokens.refreshToken()).isEqualTo("replacement");
+        verify(refreshTokenService).rotate(1L, "presented", "replacement");
     }
 }

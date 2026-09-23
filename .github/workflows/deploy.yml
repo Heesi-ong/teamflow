@@ -50,11 +50,29 @@ jobs:
             ghcr.io/${{ steps.vars.outputs.ghcr_owner }}/teamflow-nginx:${{ steps.vars.outputs.image_tag }}
             ghcr.io/${{ steps.vars.outputs.ghcr_owner }}/teamflow-nginx:latest
 
-  deploy:
+  check-deploy-config:
     needs: build-and-push
     runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - id: check
+        name: Check EC2 deployment configuration
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          if [ -n "$EC2_HOST" ] && [ -n "$EC2_SSH_KEY" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: [build-and-push, check-deploy-config]
+    runs-on: ubuntu-latest
     # EC2가 아직 준비되지 않았다면(Secrets 미설정) 배포 단계는 건너뛰고 이미지 빌드/푸시까지만 수행한다.
-    if: needs.build-and-push.result == 'success' && secrets.EC2_HOST != ''
+    if: needs.build-and-push.result == 'success' && needs.check-deploy-config.outputs.enabled == 'true'
     steps:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1

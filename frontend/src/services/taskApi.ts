@@ -55,8 +55,12 @@ export const taskApi = {
   ) => http.patch<Task>(`/projects/${projectId}/tasks/${taskId}`, body).then((res) => res.data),
   updateStatus: (projectId: number, taskId: number, status: TaskStatus, version: number) =>
     http.patch<Task>(`/projects/${projectId}/tasks/${taskId}/status`, { status, version }).then((res) => res.data),
-  updateAssignee: (projectId: number, taskId: number, assigneeId: number, version: number) =>
-    http.patch<Task>(`/projects/${projectId}/tasks/${taskId}/assignee`, { assigneeId, version }).then((res) => res.data),
+  updateAssignee: (projectId: number, taskId: number, assigneeId: number | null, version: number) =>
+    http.patch<Task>(`/projects/${projectId}/tasks/${taskId}/assignee`, {
+      assigneeId: assigneeId ?? undefined,
+      clearAssignee: assigneeId === null,
+      version,
+    }).then((res) => res.data),
   remove: (projectId: number, taskId: number) => http.delete(`/projects/${projectId}/tasks/${taskId}`),
   addChecklist: (taskId: number, content: string) =>
     http.post<TaskChecklistItem>(`/tasks/${taskId}/checklists`, { content }).then((res) => res.data),
