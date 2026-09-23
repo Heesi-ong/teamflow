@@ -5,11 +5,13 @@ import { authApi } from '../services/authApi'
 import { chatApi } from '../services/chatApi'
 import { dashboardApi } from '../services/dashboardApi'
 import { projectApi, type Project, type ProjectRole, type ProjectStatus } from '../services/projectApi'
+import { STATUS_LABELS, TASK_STATUSES, taskApi, type Task, type TaskStatus } from '../services/taskApi'
+import { FloatingProjectChat } from '../components/FloatingProjectChat'
 
 const NAV_LINKS = (id: number) => [
   { to: `/projects/${id}/board`, label: 'Kanban Board' },
   { to: `/projects/${id}/calendar`, label: 'Calendar' },
-  { to: `/projects/${id}/chat`, label: '채팅' },
+  { to: `/projects/${id}/chat`, label: '전체 채팅' },
   { to: `/projects/${id}/documents`, label: '문서' },
   { to: `/projects/${id}/files`, label: '파일' },
   { to: `/projects/${id}/members`, label: '팀원 관리' },
@@ -214,6 +216,99 @@ function ProjectDashboard({ id }: { id: number }) {
   )
 }
 
+function WorkspaceRail({ id, side }: { id: number; side: 'left' | 'right' }) {
+  const dashboardQuery = useQuery({ queryKey: ['dashboard', id], queryFn: () => dashboardApi.get(id) })
+  const tasksQuery = useQuery({ queryKey: ['tasks', id], queryFn: () => taskApi.list(id) })
+  const stats = dashboardQuery.data
+  const tasks = tasksQuery.data?.content ?? []
+  const tasksByStatus = TASK_STATUSES.reduce<Record<TaskStatus, Task[]>>((result, status) => {
+    result[status] = tasks.filter((task) => task.status === status)
+    return result
+  }, { TODO: [], IN_PROGRESS: [], REVIEW: [], DONE: [] })
+
+  if (side === 'left') {
+    return (
+      <aside className="order-2 space-y-4 xl:sticky xl:top-5 xl:order-none xl:self-start">
+        <section className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-slate-800">미니 칸반</h2>
+            <Link to={`/projects/${id}/board`} className="text-[11px] font-semibold text-primary-600 hover:underline">전체 보기</Link>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {TASK_STATUSES.map((status) => {
+              const statusTasks = tasksByStatus[status]
+              return (
+                <Link key={status} to={`/projects/${id}/board`} className="rounded-xl bg-slate-50 p-2.5 transition hover:bg-primary-50">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="truncate text-[10px] font-semibold text-slate-500">{STATUS_LABELS[status]}</span>
+                    <span className="text-xs font-bold text-slate-800">{statusTasks.length}</span>
+                  </div>
+                  <p className="mt-2 truncate text-[11px] text-slate-600">{statusTasks[0]?.title ?? '비어 있음'}</p>
+                  {statusTasks.length > 1 && <p className="mt-1 text-[10px] text-slate-400">+{statusTasks.length - 1}개 더</p>}
+                </Link>
+              )
+            })}
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
+          <h2 className="text-sm font-semibold text-slate-800">빠른 작업</h2>
+          <div className="mt-3 space-y-1.5">
+            {[
+              { to: `/projects/${id}/calendar`, label: '일정 확인' },
+              { to: `/projects/${id}/documents`, label: '문서 모아보기' },
+              { to: `/projects/${id}/files`, label: '파일 모아보기' },
+              { to: `/projects/${id}/members`, label: '팀원 관리' },
+            ].map((link) => (
+              <Link key={link.to} to={link.to} className="flex items-center justify-between rounded-lg px-2 py-2 text-xs font-medium text-slate-600 transition hover:bg-primary-50 hover:text-primary-700">
+                {link.label}
+                <span aria-hidden="true">→</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </aside>
+    )
+  }
+
+  return (
+    <aside className="order-3 space-y-4 xl:sticky xl:top-5 xl:order-none xl:self-start">
+      <section className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-800">마감 임박</h2>
+          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">{stats?.dueSoonTasks.length ?? 0}</span>
+        </div>
+        <ul className="mt-3 space-y-2">
+          {stats?.dueSoonTasks.slice(0, 4).map((task) => (
+            <li key={task.id} className="min-w-0">
+              <Link to={`/projects/${id}/board?taskId=${task.id}`} className="block truncate text-xs font-medium text-slate-700 hover:text-primary-600">{task.title}</Link>
+              <span className="text-[10px] text-slate-400">{task.dueDate ?? '기한 없음'}</span>
+            </li>
+          ))}
+          {stats?.dueSoonTasks.length === 0 && <li className="text-xs text-slate-400">예정된 마감이 없습니다.</li>}
+          {!stats && <li className="text-xs text-slate-400">불러오는 중...</li>}
+        </ul>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
+        <h2 className="text-sm font-semibold text-slate-800">최근 활동</h2>
+        <ul className="mt-3 space-y-2">
+          {stats?.recentActivities.slice(0, 4).map((activity) => (
+            <li key={activity.id} className="line-clamp-2 text-xs leading-5 text-slate-600">{activity.description}</li>
+          ))}
+          {stats?.recentActivities.length === 0 && <li className="text-xs text-slate-400">최근 활동이 없습니다.</li>}
+          {!stats && <li className="text-xs text-slate-400">불러오는 중...</li>}
+        </ul>
+      </section>
+
+      <section className="rounded-2xl border border-primary-100 bg-primary-50/70 p-4">
+        <h2 className="text-sm font-semibold text-primary-900">작업 메모</h2>
+        <p className="mt-2 text-xs leading-5 text-primary-700">채팅창을 열어 팀원과 바로 논의하고, 칸반 요약에서 현재 작업 흐름을 확인하세요.</p>
+      </section>
+    </aside>
+  )
+}
+
 function ProjectSettings({ project, role }: { project: Project; role?: ProjectRole }) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -295,7 +390,7 @@ export function ProjectDetailPage() {
   const currentRole = membersQuery.data?.find((member) => member.userId === meQuery.data?.id)?.role
 
   return (
-    <main className="mx-auto min-h-screen max-w-6xl overflow-x-hidden bg-slate-50 px-4 py-5 sm:p-6">
+    <main className="mx-auto min-h-screen max-w-[1480px] overflow-x-hidden bg-slate-50 px-4 py-5 sm:p-6">
       <Link to="/projects" className="inline-flex items-center text-sm font-medium text-slate-500 transition hover:text-slate-700">
         ← 프로젝트 목록
       </Link>
@@ -325,8 +420,15 @@ export function ProjectDetailPage() {
             </div>
           </div>
 
-          <ProjectDashboard id={id} />
-          <ProjectSettings key={data.updatedAt} project={data} role={currentRole} />
+          <div className="mt-5 grid gap-5 xl:grid-cols-[220px_minmax(0,1fr)_220px]">
+            <WorkspaceRail id={id} side="left" />
+            <div className="order-1 min-w-0 xl:order-none">
+              <ProjectDashboard id={id} />
+              <ProjectSettings key={data.updatedAt} project={data} role={currentRole} />
+            </div>
+            <WorkspaceRail id={id} side="right" />
+          </div>
+          <FloatingProjectChat projectId={id} />
         </>
       )}
     </main>
