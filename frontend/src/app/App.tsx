@@ -14,6 +14,7 @@ const DashboardPage = lazy(() => import('../pages/DashboardPage').then((m) => ({
 const ProjectListPage = lazy(() => import('../pages/ProjectListPage').then((m) => ({ default: m.ProjectListPage })))
 const ProjectCreatePage = lazy(() => import('../pages/ProjectCreatePage').then((m) => ({ default: m.ProjectCreatePage })))
 const ProjectDetailPage = lazy(() => import('../pages/ProjectDetailPage').then((m) => ({ default: m.ProjectDetailPage })))
+const ProjectSettingsPage = lazy(() => import('../pages/ProjectSettingsPage').then((m) => ({ default: m.ProjectSettingsPage })))
 const ProjectMembersPage = lazy(() => import('../pages/ProjectMembersPage').then((m) => ({ default: m.ProjectMembersPage })))
 const InvitationAcceptPage = lazy(() => import('../pages/InvitationAcceptPage').then((m) => ({ default: m.InvitationAcceptPage })))
 const KanbanBoardPage = lazy(() => import('../pages/KanbanBoardPage').then((m) => ({ default: m.KanbanBoardPage })))
@@ -68,6 +69,7 @@ export function App() {
             <Route path="/projects" element={<RequireAuth><ProjectListPage /></RequireAuth>} />
             <Route path="/projects/new" element={<RequireAuth><ProjectCreatePage /></RequireAuth>} />
             <Route path="/projects/:projectId" element={<RequireAuth><ProjectDetailPage /></RequireAuth>} />
+            <Route path="/projects/:projectId/settings" element={<RequireAuth><ProjectSettingsPage /></RequireAuth>} />
             <Route path="/projects/:projectId/board" element={<RequireAuth><KanbanBoardPage /></RequireAuth>} />
             <Route path="/projects/:projectId/chat" element={<RequireAuth><ChatPage /></RequireAuth>} />
             <Route path="/projects/:projectId/documents" element={<RequireAuth><DocumentsPage /></RequireAuth>} />

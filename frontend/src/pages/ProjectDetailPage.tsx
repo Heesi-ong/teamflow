@@ -1,10 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { authApi } from '../services/authApi'
+import { Link, useParams } from 'react-router-dom'
 import { chatApi } from '../services/chatApi'
 import { dashboardApi } from '../services/dashboardApi'
-import { projectApi, type Project, type ProjectRole, type ProjectStatus } from '../services/projectApi'
+import { projectApi } from '../services/projectApi'
 import { STATUS_LABELS, TASK_STATUSES, taskApi, type Task, type TaskStatus } from '../services/taskApi'
 import { FloatingProjectChat } from '../components/FloatingProjectChat'
 
@@ -15,9 +14,8 @@ const NAV_LINKS = (id: number) => [
   { to: `/projects/${id}/documents`, label: '문서' },
   { to: `/projects/${id}/files`, label: '파일' },
   { to: `/projects/${id}/members`, label: '팀원 관리' },
+  { to: `/projects/${id}/settings`, label: '프로젝트 설정' },
 ]
-
-const PROJECT_STATUSES: ProjectStatus[] = ['PLANNING', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED', 'ARCHIVED']
 
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
@@ -229,22 +227,25 @@ function WorkspaceRail({ id, side }: { id: number; side: 'left' | 'right' }) {
   if (side === 'left') {
     return (
       <aside className="order-2 space-y-4 xl:sticky xl:top-5 xl:order-none xl:self-start">
-        <section className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
+        <section className="rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-800">미니 칸반</h2>
-            <Link to={`/projects/${id}/board`} className="text-[11px] font-semibold text-primary-600 hover:underline">전체 보기</Link>
+            <div>
+              <h2 className="text-base font-semibold text-slate-800">미니 칸반</h2>
+              <p className="mt-1 text-xs text-slate-400">현재 작업 흐름</p>
+            </div>
+            <Link to={`/projects/${id}/board`} className="text-xs font-semibold text-primary-600 hover:underline">전체 보기</Link>
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="mt-4 grid grid-cols-2 gap-3">
             {TASK_STATUSES.map((status) => {
               const statusTasks = tasksByStatus[status]
               return (
-                <Link key={status} to={`/projects/${id}/board`} className="rounded-xl bg-slate-50 p-2.5 transition hover:bg-primary-50">
+                <Link key={status} to={`/projects/${id}/board`} className="min-h-[96px] rounded-xl bg-slate-50 p-3 transition hover:bg-primary-50">
                   <div className="flex items-center justify-between gap-1">
-                    <span className="truncate text-[10px] font-semibold text-slate-500">{STATUS_LABELS[status]}</span>
-                    <span className="text-xs font-bold text-slate-800">{statusTasks.length}</span>
+                    <span className="truncate text-xs font-semibold text-slate-500">{STATUS_LABELS[status]}</span>
+                    <span className="text-base font-bold text-slate-800">{statusTasks.length}</span>
                   </div>
-                  <p className="mt-2 truncate text-[11px] text-slate-600">{statusTasks[0]?.title ?? '비어 있음'}</p>
-                  {statusTasks.length > 1 && <p className="mt-1 text-[10px] text-slate-400">+{statusTasks.length - 1}개 더</p>}
+                  <p className="mt-3 truncate text-xs text-slate-600">{statusTasks[0]?.title ?? '비어 있음'}</p>
+                  {statusTasks.length > 1 && <p className="mt-1 text-[11px] text-slate-400">+{statusTasks.length - 1}개 더</p>}
                 </Link>
               )
             })}
@@ -309,85 +310,13 @@ function WorkspaceRail({ id, side }: { id: number; side: 'left' | 'right' }) {
   )
 }
 
-function ProjectSettings({ project, role }: { project: Project; role?: ProjectRole }) {
-  const queryClient = useQueryClient()
-  const navigate = useNavigate()
-  const [name, setName] = useState(project.name)
-  const [description, setDescription] = useState(project.description ?? '')
-  const [status, setStatus] = useState(project.status)
-  const [startDate, setStartDate] = useState(project.startDate ?? '')
-  const [endDate, setEndDate] = useState(project.endDate ?? '')
-  const [error, setError] = useState<string | null>(null)
-  const canEdit = role === 'OWNER' || role === 'ADMIN'
-
-  const updateMutation = useMutation({
-    mutationFn: () => projectApi.update(project.id, {
-      name,
-      description,
-      status,
-      // 날짜 삭제는 명시적인 플래그로 전달한다. 필드 생략은 기존 날짜 유지다.
-      startDate: startDate || undefined,
-      endDate: endDate || undefined,
-      clearStartDate: !startDate,
-      clearEndDate: !endDate,
-    }),
-    onSuccess: () => {
-      setError(null)
-      queryClient.invalidateQueries({ queryKey: ['project', project.id] })
-      queryClient.invalidateQueries({ queryKey: ['projects'] })
-    },
-    onError: (err: any) => setError(err.response?.data?.message ?? '프로젝트 수정에 실패했습니다.'),
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: () => projectApi.remove(project.id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] })
-      navigate('/projects')
-    },
-  })
-
-  if (!canEdit) return null
-
-  return (
-    <section className="mt-5 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-[0_2px_8px_rgba(15,23,42,0.06)] sm:p-6">
-      <h2 className="font-semibold text-slate-900">프로젝트 설정</h2>
-      <div className="mt-3 grid gap-3">
-        <input value={name} maxLength={200} onChange={(e) => setName(e.target.value)} aria-label="프로젝트 이름" className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} aria-label="프로젝트 설명" className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
-        <select value={status} onChange={(e) => setStatus(e.target.value as ProjectStatus)} aria-label="프로젝트 상태" className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100">
-          {PROJECT_STATUSES.map((value) => <option key={value}>{value}</option>)}
-        </select>
-        <div className="grid grid-cols-2 gap-3">
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} aria-label="프로젝트 시작일" className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
-          <input type="date" value={endDate} min={startDate || undefined} onChange={(e) => setEndDate(e.target.value)} aria-label="프로젝트 종료일" className="rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-primary-500 focus:ring-2 focus:ring-primary-100" />
-        </div>
-      </div>
-      {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
-      <div className="mt-4 flex items-center gap-3">
-        <button disabled={!name.trim() || updateMutation.isPending} onClick={() => updateMutation.mutate()} className="rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50">
-          변경 저장
-        </button>
-        {role === 'OWNER' && (
-          <button onClick={() => window.confirm('프로젝트를 삭제할까요? 이 작업은 화면에서 복구할 수 없습니다.') && deleteMutation.mutate()} className="text-sm text-red-500 hover:underline">
-            프로젝트 삭제
-          </button>
-        )}
-      </div>
-    </section>
-  )
-}
-
 export function ProjectDetailPage() {
   const { projectId } = useParams<{ projectId: string }>()
   const id = Number(projectId)
-  const membersQuery = useQuery({ queryKey: ['members', id], queryFn: () => projectApi.members(id) })
-  const meQuery = useQuery({ queryKey: ['me'], queryFn: () => authApi.me().then((res) => res.data) })
   const { data, isLoading, isError } = useQuery({
     queryKey: ['project', id],
     queryFn: () => projectApi.get(id),
   })
-  const currentRole = membersQuery.data?.find((member) => member.userId === meQuery.data?.id)?.role
 
   return (
     <main className="mx-auto min-h-screen max-w-[1480px] overflow-x-hidden bg-slate-50 px-4 py-5 sm:p-6">
@@ -407,7 +336,7 @@ export function ProjectDetailPage() {
             <p className="mt-2 text-sm text-slate-400">
               {data.startDate ?? '?'} ~ {data.endDate ?? '?'}
             </p>
-            <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-7">
               {NAV_LINKS(data.id).map((link) => (
                 <Link
                   key={link.to}
@@ -420,11 +349,10 @@ export function ProjectDetailPage() {
             </div>
           </div>
 
-          <div className="mt-5 grid gap-5 xl:grid-cols-[220px_minmax(0,1fr)_220px]">
+          <div className="mt-5 grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)_240px]">
             <WorkspaceRail id={id} side="left" />
             <div className="order-1 min-w-0 xl:order-none">
               <ProjectDashboard id={id} />
-              <ProjectSettings key={data.updatedAt} project={data} role={currentRole} />
             </div>
             <WorkspaceRail id={id} side="right" />
           </div>
