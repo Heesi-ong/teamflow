@@ -10,6 +10,6 @@ export interface ChatMessage {
 }
 
 export const chatApi = {
-  history: (projectId: number, before?: number) =>
-    http.get<ChatMessage[]>(`/projects/${projectId}/chat/messages`, { params: { before } }).then((res) => res.data),
+  history: (projectId: number, before?: number, size?: number) =>
+    http.get<ChatMessage[]>(`/projects/${projectId}/chat/messages`, { params: { before, size } }).then((res) => res.data),
 }

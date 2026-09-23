@@ -85,6 +85,13 @@ public class DocumentService {
                 projectId, requesterId, "문서 \"" + document.getTitle() + "\" 삭제됨"));
     }
 
+    /** Internal use (dashboard) — caller already verified membership. */
+    public List<DocumentSummaryResponse> recent(Long projectId) {
+        List<Document> documents = documentRepository.findTop5ByProjectIdOrderByUpdatedAtDesc(projectId);
+        Map<Long, String> authorNames = authorNames(documents.stream().map(Document::getAuthorId).toList());
+        return documents.stream().map(d -> DocumentSummaryResponse.from(d, authorNames.get(d.getAuthorId()))).toList();
+    }
+
     /** Internal use (dashboard search) — caller already verified membership. */
     public List<DocumentSummaryResponse> search(Long projectId, String keyword, int limit) {
         List<Document> documents = documentRepository.search(projectId, keyword, PageRequest.of(0, limit));

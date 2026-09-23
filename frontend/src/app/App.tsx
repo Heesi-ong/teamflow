@@ -20,7 +20,6 @@ const KanbanBoardPage = lazy(() => import('../pages/KanbanBoardPage').then((m) =
 const ChatPage = lazy(() => import('../pages/ChatPage').then((m) => ({ default: m.ChatPage })))
 const DocumentsPage = lazy(() => import('../pages/DocumentsPage').then((m) => ({ default: m.DocumentsPage })))
 const FilesPage = lazy(() => import('../pages/FilesPage').then((m) => ({ default: m.FilesPage })))
-const ProjectDashboardPage = lazy(() => import('../pages/ProjectDashboardPage').then((m) => ({ default: m.ProjectDashboardPage })))
 const CalendarPage = lazy(() => import('../pages/CalendarPage').then((m) => ({ default: m.CalendarPage })))
 
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -73,7 +72,6 @@ export function App() {
             <Route path="/projects/:projectId/chat" element={<RequireAuth><ChatPage /></RequireAuth>} />
             <Route path="/projects/:projectId/documents" element={<RequireAuth><DocumentsPage /></RequireAuth>} />
             <Route path="/projects/:projectId/files" element={<RequireAuth><FilesPage /></RequireAuth>} />
-            <Route path="/projects/:projectId/dashboard" element={<RequireAuth><ProjectDashboardPage /></RequireAuth>} />
             <Route path="/projects/:projectId/calendar" element={<RequireAuth><CalendarPage /></RequireAuth>} />
             <Route path="/projects/:projectId/members" element={<RequireAuth><ProjectMembersPage /></RequireAuth>} />
           </Routes>

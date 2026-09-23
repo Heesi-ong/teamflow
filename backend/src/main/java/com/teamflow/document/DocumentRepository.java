@@ -14,6 +14,8 @@ public interface DocumentRepository extends JpaRepository<Document, Long> {
 
     Optional<Document> findByIdAndProjectId(Long id, Long projectId);
 
+    List<Document> findTop5ByProjectIdOrderByUpdatedAtDesc(Long projectId);
+
     @Query("""
             SELECT d FROM Document d
             WHERE d.projectId = :projectId

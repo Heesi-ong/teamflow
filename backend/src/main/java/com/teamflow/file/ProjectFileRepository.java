@@ -1,5 +1,6 @@
 package com.teamflow.file;
 
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,4 +13,6 @@ public interface ProjectFileRepository extends JpaRepository<ProjectFile, Long> 
     Page<ProjectFile> findByProjectIdAndTaskId(Long projectId, Long taskId, Pageable pageable);
 
     Optional<ProjectFile> findByIdAndProjectId(Long id, Long projectId);
+
+    List<ProjectFile> findTop5ByProjectIdOrderByCreatedAtDesc(Long projectId);
 }

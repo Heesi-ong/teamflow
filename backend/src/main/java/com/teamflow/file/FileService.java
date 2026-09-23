@@ -15,6 +15,7 @@ import com.teamflow.task.TaskRepository;
 import com.teamflow.user.UserService;
 import java.time.Duration;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -46,6 +47,22 @@ public class FileService {
     // 11-file-storage-design.md §4
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
             "jpg", "jpeg", "png", "gif", "webp", "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "zip", "txt", "md");
+    private static final Map<String, Set<String>> ALLOWED_CONTENT_TYPES = Map.ofEntries(
+            Map.entry("jpg", Set.of("image/jpeg")),
+            Map.entry("jpeg", Set.of("image/jpeg")),
+            Map.entry("png", Set.of("image/png")),
+            Map.entry("gif", Set.of("image/gif")),
+            Map.entry("webp", Set.of("image/webp")),
+            Map.entry("pdf", Set.of("application/pdf")),
+            Map.entry("doc", Set.of("application/msword")),
+            Map.entry("docx", Set.of("application/vnd.openxmlformats-officedocument.wordprocessingml.document")),
+            Map.entry("xls", Set.of("application/vnd.ms-excel")),
+            Map.entry("xlsx", Set.of("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")),
+            Map.entry("ppt", Set.of("application/vnd.ms-powerpoint")),
+            Map.entry("pptx", Set.of("application/vnd.openxmlformats-officedocument.presentationml.presentation")),
+            Map.entry("zip", Set.of("application/zip", "application/x-zip-compressed")),
+            Map.entry("txt", Set.of("text/plain")),
+            Map.entry("md", Set.of("text/markdown", "text/plain")));
     private static final long MAX_FILE_SIZE = 50L * 1024 * 1024;
     private static final Duration UPLOAD_TTL = Duration.ofMinutes(5);
     private static final Duration DOWNLOAD_TTL = Duration.ofMinutes(10);
@@ -72,7 +89,7 @@ public class FileService {
 
     public PresignedUploadResponse createUploadUrl(Long projectId, Long userId, PresignedUploadRequest request) {
         projectMemberService.requireAtLeast(projectId, userId, ProjectRole.MEMBER);
-        validate(request.fileName(), request.fileSize());
+        validate(request.fileName(), request.fileSize(), request.contentType());
 
         String s3Key = buildKey(projectId, request.fileName());
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -92,7 +109,7 @@ public class FileService {
     @Transactional
     public ProjectFileResponse register(Long projectId, Long uploaderId, FileRegisterRequest request) {
         projectMemberService.requireAtLeast(projectId, uploaderId, ProjectRole.MEMBER);
-        validate(request.fileName(), request.fileSize());
+        validate(request.fileName(), request.fileSize(), request.contentType());
         // s3Key는 createUploadUrl()이 이 프로젝트용으로 발급한 것이어야 한다 — 그렇지 않으면 다른
         // 프로젝트에서 얻은 키(예: 자신이 멤버였던 다른 프로젝트에 업로드한 파일)를 등록해 그 객체에
         // 대한 접근을 이 프로젝트로 복제해올 수 있다.
@@ -122,6 +139,14 @@ public class FileService {
         return ProjectFileResponse.from(file, userService.getSummary(uploaderId).name());
     }
 
+    /** Internal use (dashboard) — caller already verified membership. */
+    public List<ProjectFileResponse> recent(Long projectId) {
+        List<ProjectFile> files = projectFileRepository.findTop5ByProjectIdOrderByCreatedAtDesc(projectId);
+        Map<Long, String> uploaderNames = userService.getSummaries(files.stream().map(ProjectFile::getUploaderId).toList())
+                .entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().name()));
+        return files.stream().map(f -> ProjectFileResponse.from(f, uploaderNames.get(f.getUploaderId()))).toList();
+    }
+
     public PageResponse<ProjectFileResponse> list(Long projectId, Long requesterId, Long taskId, Pageable pageable) {
         projectMemberService.requireAtLeast(projectId, requesterId, ProjectRole.GUEST);
         Page<ProjectFile> page = taskId != null
@@ -137,7 +162,11 @@ public class FileService {
         ProjectFile file = findInProject(projectId, fileId);
         var presignRequest = GetObjectPresignRequest.builder()
                 .signatureDuration(DOWNLOAD_TTL)
-                .getObjectRequest(GetObjectRequest.builder().bucket(s3Properties.getBucket()).key(file.getS3Key()).build())
+                .getObjectRequest(GetObjectRequest.builder()
+                        .bucket(s3Properties.getBucket())
+                        .key(file.getS3Key())
+                        .responseContentDisposition("attachment")
+                        .build())
                 .build();
         String url = s3Presigner.presignGetObject(presignRequest).url().toString();
         return new DownloadUrlResponse(url, DOWNLOAD_TTL.toSeconds());
@@ -160,9 +189,14 @@ public class FileService {
         projectFileRepository.delete(file);
     }
 
-    private void validate(String fileName, long fileSize) {
+    private void validate(String fileName, long fileSize, String contentType) {
         String extension = extensionOf(fileName);
-        if (extension == null || !ALLOWED_EXTENSIONS.contains(extension) || fileSize <= 0 || fileSize > MAX_FILE_SIZE) {
+        String normalizedContentType = contentType == null
+                ? ""
+                : contentType.toLowerCase(Locale.ROOT).split(";", 2)[0].trim();
+        if (extension == null || !ALLOWED_EXTENSIONS.contains(extension)
+                || !ALLOWED_CONTENT_TYPES.getOrDefault(extension, Set.of()).contains(normalizedContentType)
+                || fileSize <= 0 || fileSize > MAX_FILE_SIZE) {
             throw new BusinessException(ErrorCode.INVALID_FILE);
         }
     }

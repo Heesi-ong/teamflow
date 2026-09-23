@@ -7,6 +7,7 @@ import com.teamflow.dashboard.dto.DashboardResponse;
 import com.teamflow.dashboard.dto.SearchResponse;
 import com.teamflow.document.DocumentService;
 import com.teamflow.document.dto.DocumentSummaryResponse;
+import com.teamflow.file.FileService;
 import com.teamflow.member.ProjectMemberService;
 import com.teamflow.member.ProjectRole;
 import com.teamflow.task.TaskService;
@@ -15,6 +16,8 @@ import com.teamflow.task.dto.TaskResponse;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
@@ -23,6 +26,7 @@ import tools.jackson.databind.ObjectMapper;
 @Service
 public class DashboardService {
 
+    private static final Logger log = LoggerFactory.getLogger(DashboardService.class);
     private static final String CACHE_KEY_PREFIX = "dashboard:";
     private static final Duration CACHE_TTL = Duration.ofSeconds(60);
     // 문서에 명시된 기준이 없어 "마감임박"을 오늘부터 3일 이내(미완료)로 정한다.
@@ -33,17 +37,19 @@ public class DashboardService {
     private final TaskService taskService;
     private final ActivityLogService activityLogService;
     private final DocumentService documentService;
+    private final FileService fileService;
     private final TaskCommentService taskCommentService;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
     public DashboardService(ProjectMemberService projectMemberService, TaskService taskService,
-            ActivityLogService activityLogService, DocumentService documentService, TaskCommentService taskCommentService,
-            StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
+            ActivityLogService activityLogService, DocumentService documentService, FileService fileService,
+            TaskCommentService taskCommentService, StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
         this.projectMemberService = projectMemberService;
         this.taskService = taskService;
         this.activityLogService = activityLogService;
         this.documentService = documentService;
+        this.fileService = fileService;
         this.taskCommentService = taskCommentService;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
@@ -52,17 +58,30 @@ public class DashboardService {
     public DashboardResponse getDashboard(Long projectId, Long requesterId) {
         projectMemberService.requireAtLeast(projectId, requesterId, ProjectRole.GUEST);
         String cacheKey = CACHE_KEY_PREFIX + projectId;
-        String cached = redisTemplate.opsForValue().get(cacheKey);
-        if (cached != null) {
-            return objectMapper.readValue(cached, DashboardResponse.class);
+        try {
+            String cached = redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                return objectMapper.readValue(cached, DashboardResponse.class);
+            }
+        } catch (RuntimeException ex) {
+            // Dashboard cache is an optimization. Redis 장애는 원본 DB 계산을 막지 않아야 한다.
+            log.warn("Dashboard cache read failed for project {}", projectId);
         }
         DashboardResponse response = compute(projectId);
-        redisTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(response), CACHE_TTL);
+        try {
+            redisTemplate.opsForValue().set(cacheKey, objectMapper.writeValueAsString(response), CACHE_TTL);
+        } catch (RuntimeException ex) {
+            log.warn("Dashboard cache write failed for project {}", projectId);
+        }
         return response;
     }
 
     public void evictCache(Long projectId) {
-        redisTemplate.delete(CACHE_KEY_PREFIX + projectId);
+        try {
+            redisTemplate.delete(CACHE_KEY_PREFIX + projectId);
+        } catch (RuntimeException ex) {
+            log.warn("Dashboard cache eviction failed for project {}", projectId);
+        }
     }
 
     public SearchResponse search(Long projectId, Long requesterId, String keyword, SearchType type) {
@@ -88,6 +107,9 @@ public class DashboardService {
         List<TaskResponse> dueSoon = taskService.findDueSoon(projectId, DUE_SOON_DAYS);
         long memberCount = projectMemberService.countMembers(projectId);
         var recentActivities = activityLogService.recent(projectId, 10);
-        return new DashboardResponse(total, done, inProgress, todo, progressRate, dueSoon, memberCount, recentActivities);
+        var recentDocuments = documentService.recent(projectId);
+        var recentFiles = fileService.recent(projectId);
+        return new DashboardResponse(
+                total, done, inProgress, todo, progressRate, dueSoon, memberCount, recentActivities, recentDocuments, recentFiles);
     }
 }

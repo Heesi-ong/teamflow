@@ -2,6 +2,7 @@ import { http } from './http'
 import type { Task } from './taskApi'
 import type { DocumentSummary } from './documentApi'
 import type { TaskComment } from './commentApi'
+import type { ProjectFile } from './fileApi'
 
 export interface ActivityLogItem {
   id: number
@@ -21,6 +22,8 @@ export interface DashboardStats {
   dueSoonTasks: Task[]
   memberCount: number
   recentActivities: ActivityLogItem[]
+  recentDocuments: DocumentSummary[]
+  recentFiles: ProjectFile[]
 }
 
 export interface SearchResults {
