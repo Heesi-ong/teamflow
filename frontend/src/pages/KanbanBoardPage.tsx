@@ -5,7 +5,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { TaskDetailModal } from '../components/TaskDetailModal'
 import { PRIORITY_BADGE, STATUS_ACCENT } from '../lib/taskVisuals'
 import { projectApi } from '../services/projectApi'
-import { STATUS_LABELS, TASK_STATUSES, taskApi, type Task, type TaskStatus } from '../services/taskApi'
+import { STATUS_LABELS, TASK_STATUSES, groupTasksByStatus, taskApi, type Task, type TaskStatus } from '../services/taskApi'
 
 export function KanbanBoardPage() {
   const { projectId } = useParams<{ projectId: string }>()
@@ -19,6 +19,9 @@ export function KanbanBoardPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [title, setTitle] = useState('')
   const boardRef = useRef<HTMLDivElement>(null)
+  const rawStatus = searchParams.get('status')
+  const selectedStatus = TASK_STATUSES.includes(rawStatus as TaskStatus) ? rawStatus as TaskStatus : null
+  const visibleStatuses = selectedStatus ? [selectedStatus] : TASK_STATUSES
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -35,8 +38,15 @@ export function KanbanBoardPage() {
     }
   }
 
+  function clearStatusFilter() {
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.delete('status')
+    setSearchParams(nextParams, { replace: true })
+  }
+
   const tasksQuery = useQuery({ queryKey: ['tasks', id], queryFn: () => taskApi.list(id) })
   const membersQuery = useQuery({ queryKey: ['members', id], queryFn: () => projectApi.members(id) })
+  const tasksByStatus = groupTasksByStatus(tasksQuery.data?.content ?? [])
 
   const createMutation = useMutation({
     mutationFn: () => taskApi.create(id, { title, description: '', assigneeId: null, priority: 'MEDIUM' }),
@@ -106,9 +116,16 @@ export function KanbanBoardPage() {
         </form>
       )}
 
-      <div ref={boardRef} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {TASK_STATUSES.map((status) => {
-          const tasksInColumn = tasksQuery.data?.content.filter((task) => task.status === status) ?? []
+      {selectedStatus && (
+        <div className="mb-4 flex items-center justify-between rounded-lg border border-primary-100 bg-primary-50 px-3 py-2 text-sm text-primary-700">
+          <span>상태 필터: <strong>{STATUS_LABELS[selectedStatus]}</strong></span>
+          <button type="button" onClick={clearStatusFilter} className="text-xs font-semibold underline">전체 보기</button>
+        </div>
+      )}
+
+      <div ref={boardRef} className={`grid grid-cols-1 gap-4 ${selectedStatus ? 'lg:grid-cols-1' : 'sm:grid-cols-2 lg:grid-cols-4'}`}>
+        {visibleStatuses.map((status) => {
+          const tasksInColumn = tasksByStatus[status]
           return (
             <div
               key={status}

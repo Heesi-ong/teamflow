@@ -1,73 +1,15 @@
-import { Client } from '@stomp/stompjs'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { WS_BASE_URL } from '../config'
-import { chatApi, type ChatMessage } from '../services/chatApi'
-import { useAuthStore } from '../store/authStore'
+import { useProjectChat } from '../hooks/useProjectChat'
 
 interface FloatingProjectChatProps {
   projectId: number
 }
 
 export function FloatingProjectChat({ projectId }: FloatingProjectChatProps) {
-  const accessToken = useAuthStore((state) => state.accessToken)
   const [open, setOpen] = useState(false)
-  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
-  const [connected, setConnected] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const clientRef = useRef<Client | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) {
-      clientRef.current?.deactivate()
-      clientRef.current = null
-      return
-    }
-
-    let cancelled = false
-    chatApi.history(projectId)
-      .then((history) => {
-        if (!cancelled) setMessages([...history].reverse())
-      })
-      .catch(() => {
-        if (!cancelled) setError('채팅 내역을 불러오지 못했습니다.')
-      })
-
-    if (!accessToken) return () => { cancelled = true }
-
-    const client = new Client({
-      brokerURL: `${WS_BASE_URL}/ws/chat`,
-      connectHeaders: { Authorization: `Bearer ${accessToken}` },
-      reconnectDelay: 2000,
-      onConnect: () => {
-        setConnected(true)
-        setError(null)
-        client.subscribe(`/topic/projects/${projectId}/chat`, (frame) => {
-          const message: ChatMessage = JSON.parse(frame.body)
-          setMessages((previous) => [...previous, message])
-        })
-        client.subscribe('/user/queue/errors', (frame) => {
-          const response = JSON.parse(frame.body) as { message?: string }
-          setError(response.message ?? '메시지 전송에 실패했습니다.')
-        })
-      },
-      onDisconnect: () => setConnected(false),
-      onStompError: () => {
-        setConnected(false)
-        setError('채팅 연결에 실패했습니다.')
-      },
-    })
-
-    client.activate()
-    clientRef.current = client
-    return () => {
-      cancelled = true
-      client.deactivate()
-      if (clientRef.current === client) clientRef.current = null
-      setConnected(false)
-    }
-  }, [accessToken, open, projectId])
+  const { messages, connected, error, sendMessage } = useProjectChat(projectId, open)
 
   useEffect(() => {
     if (open) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -75,13 +17,7 @@ export function FloatingProjectChat({ projectId }: FloatingProjectChatProps) {
 
   function handleSend(event: FormEvent) {
     event.preventDefault()
-    const content = input.trim()
-    if (!content || !clientRef.current?.connected) return
-    clientRef.current.publish({
-      destination: `/app/projects/${projectId}/chat.send`,
-      body: JSON.stringify({ content }),
-    })
-    setInput('')
+    if (sendMessage(input)) setInput('')
   }
 
   if (!open) {
@@ -90,10 +26,7 @@ export function FloatingProjectChat({ projectId }: FloatingProjectChatProps) {
         type="button"
         aria-label="프로젝트 채팅 열기"
         aria-expanded="false"
-        onClick={() => {
-          setError(null)
-          setOpen(true)
-        }}
+        onClick={() => setOpen(true)}
         className="fixed bottom-5 right-5 z-40 flex items-center gap-2 rounded-full bg-primary-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_30px_rgba(79,70,229,0.35)] transition hover:-translate-y-0.5 hover:bg-primary-700 focus:outline-none focus:ring-4 focus:ring-primary-200"
       >
         <span aria-hidden="true" className="text-base">💬</span>

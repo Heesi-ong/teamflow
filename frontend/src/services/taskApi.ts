@@ -39,6 +39,13 @@ export interface TaskDetail extends Task {
   checklists: TaskChecklistItem[]
 }
 
+export function groupTasksByStatus(tasks: Task[]): Record<TaskStatus, Task[]> {
+  return TASK_STATUSES.reduce<Record<TaskStatus, Task[]>>((result, status) => {
+    result[status] = tasks.filter((task) => task.status === status)
+    return result
+  }, { TODO: [], IN_PROGRESS: [], REVIEW: [], DONE: [] })
+}
+
 export const taskApi = {
   list: (projectId: number) =>
     http.get<PageResponse<Task>>(`/projects/${projectId}/tasks`, { params: { size: 100 } }).then((res) => res.data),

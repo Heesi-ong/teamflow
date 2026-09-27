@@ -4,7 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { chatApi } from '../services/chatApi'
 import { dashboardApi } from '../services/dashboardApi'
 import { projectApi } from '../services/projectApi'
-import { STATUS_LABELS, TASK_STATUSES, taskApi, type Task, type TaskStatus } from '../services/taskApi'
+import { STATUS_LABELS, TASK_STATUSES, groupTasksByStatus, taskApi } from '../services/taskApi'
 import { FloatingProjectChat } from '../components/FloatingProjectChat'
 
 const NAV_LINKS = (id: number) => [
@@ -31,6 +31,15 @@ function WidgetCard({ title, children }: { title: string; children: ReactNode })
     <div className="min-h-[132px] rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
       <h2 className="text-sm font-semibold text-slate-700">{title}</h2>
       {children}
+    </div>
+  )
+}
+
+function RetryPanel({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div role="alert" className="rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-600">
+      <p>{message}</p>
+      <button type="button" onClick={onRetry} className="mt-2 text-xs font-semibold text-red-700 underline">다시 시도</button>
     </div>
   )
 }
@@ -114,6 +123,9 @@ function ProjectDashboard({ id }: { id: number }) {
           </div>
         </div>
       )}
+
+      {dashboardQuery.isLoading && <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500">프로젝트 현황을 불러오는 중...</div>}
+      {dashboardQuery.isError && <div className="mt-5"><RetryPanel message="프로젝트 현황을 불러오지 못했습니다." onRetry={() => void dashboardQuery.refetch()} /></div>}
 
       {stats && (
         <>
@@ -218,11 +230,7 @@ function WorkspaceRail({ id, side }: { id: number; side: 'left' | 'right' }) {
   const dashboardQuery = useQuery({ queryKey: ['dashboard', id], queryFn: () => dashboardApi.get(id) })
   const tasksQuery = useQuery({ queryKey: ['tasks', id], queryFn: () => taskApi.list(id) })
   const stats = dashboardQuery.data
-  const tasks = tasksQuery.data?.content ?? []
-  const tasksByStatus = TASK_STATUSES.reduce<Record<TaskStatus, Task[]>>((result, status) => {
-    result[status] = tasks.filter((task) => task.status === status)
-    return result
-  }, { TODO: [], IN_PROGRESS: [], REVIEW: [], DONE: [] })
+  const tasksByStatus = groupTasksByStatus(tasksQuery.data?.content ?? [])
 
   if (side === 'left') {
     return (
@@ -235,11 +243,12 @@ function WorkspaceRail({ id, side }: { id: number; side: 'left' | 'right' }) {
             </div>
             <Link to={`/projects/${id}/board`} className="text-xs font-semibold text-primary-600 hover:underline">전체 보기</Link>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-3">
+          {tasksQuery.isError && <RetryPanel message="칸반 요약을 불러오지 못했습니다." onRetry={() => void tasksQuery.refetch()} />}
+          {!tasksQuery.isError && <div className="mt-4 grid grid-cols-2 gap-3">
             {TASK_STATUSES.map((status) => {
               const statusTasks = tasksByStatus[status]
               return (
-                <Link key={status} to={`/projects/${id}/board`} className="min-h-[96px] rounded-xl bg-slate-50 p-3 transition hover:bg-primary-50">
+                <Link key={status} to={`/projects/${id}/board?status=${status}`} className="min-h-[96px] rounded-xl bg-slate-50 p-3 transition hover:bg-primary-50">
                   <div className="flex items-center justify-between gap-1">
                     <span className="truncate text-xs font-semibold text-slate-500">{STATUS_LABELS[status]}</span>
                     <span className="text-base font-bold text-slate-800">{statusTasks.length}</span>
@@ -249,7 +258,7 @@ function WorkspaceRail({ id, side }: { id: number; side: 'left' | 'right' }) {
                 </Link>
               )
             })}
-          </div>
+          </div>}
         </section>
 
         <section className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
@@ -280,6 +289,7 @@ function WorkspaceRail({ id, side }: { id: number; side: 'left' | 'right' }) {
           <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-700">{stats?.dueSoonTasks.length ?? 0}</span>
         </div>
         <ul className="mt-3 space-y-2">
+          {dashboardQuery.isError && <li><button type="button" onClick={() => void dashboardQuery.refetch()} className="text-xs font-semibold text-red-600 underline">현황 다시 불러오기</button></li>}
           {stats?.dueSoonTasks.slice(0, 4).map((task) => (
             <li key={task.id} className="min-w-0">
               <Link to={`/projects/${id}/board?taskId=${task.id}`} className="block truncate text-xs font-medium text-slate-700 hover:text-primary-600">{task.title}</Link>
@@ -287,7 +297,7 @@ function WorkspaceRail({ id, side }: { id: number; side: 'left' | 'right' }) {
             </li>
           ))}
           {stats?.dueSoonTasks.length === 0 && <li className="text-xs text-slate-400">예정된 마감이 없습니다.</li>}
-          {!stats && <li className="text-xs text-slate-400">불러오는 중...</li>}
+          {!stats && !dashboardQuery.isError && <li className="text-xs text-slate-400">불러오는 중...</li>}
         </ul>
       </section>
 
@@ -298,7 +308,7 @@ function WorkspaceRail({ id, side }: { id: number; side: 'left' | 'right' }) {
             <li key={activity.id} className="line-clamp-2 text-xs leading-5 text-slate-600">{activity.description}</li>
           ))}
           {stats?.recentActivities.length === 0 && <li className="text-xs text-slate-400">최근 활동이 없습니다.</li>}
-          {!stats && <li className="text-xs text-slate-400">불러오는 중...</li>}
+          {!stats && !dashboardQuery.isError && <li className="text-xs text-slate-400">불러오는 중...</li>}
         </ul>
       </section>
 

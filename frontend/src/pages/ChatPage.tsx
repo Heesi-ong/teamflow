@@ -1,66 +1,21 @@
-import { Client } from '@stomp/stompjs'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { WS_BASE_URL } from '../config'
-import { chatApi, type ChatMessage } from '../services/chatApi'
-import { useAuthStore } from '../store/authStore'
+import { useProjectChat } from '../hooks/useProjectChat'
 
 export function ChatPage() {
   const { projectId } = useParams<{ projectId: string }>()
   const id = Number(projectId)
-  const accessToken = useAuthStore((s) => s.accessToken)
-  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
-  const [connected, setConnected] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const clientRef = useRef<Client | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    chatApi.history(id).then((history) => setMessages([...history].reverse()))
-  }, [id])
-
-  // 10-realtime-architecture.md §2.1: 인증은 STOMP CONNECT 프레임의 Authorization 헤더로 전달한다.
-  useEffect(() => {
-    if (!accessToken) return
-    const client = new Client({
-      brokerURL: `${WS_BASE_URL}/ws/chat`,
-      connectHeaders: { Authorization: `Bearer ${accessToken}` },
-      reconnectDelay: 2000,
-      onConnect: () => {
-        setConnected(true)
-        setError(null)
-        client.subscribe(`/topic/projects/${id}/chat`, (frame) => {
-          const message: ChatMessage = JSON.parse(frame.body)
-          setMessages((prev) => [...prev, message])
-        })
-        client.subscribe('/user/queue/errors', (frame) => {
-          const err = JSON.parse(frame.body)
-          setError(err.message ?? '메시지 전송에 실패했습니다.')
-        })
-      },
-      onDisconnect: () => setConnected(false),
-      onStompError: () => setError('채팅 연결에 실패했습니다.'),
-    })
-    client.activate()
-    clientRef.current = client
-    return () => {
-      client.deactivate()
-    }
-  }, [id, accessToken])
+  const { messages, connected, error, sendMessage } = useProjectChat(id, true)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  function handleSend(e: React.FormEvent) {
+  function handleSend(e: FormEvent) {
     e.preventDefault()
-    if (!input.trim() || !clientRef.current?.connected) return
-    clientRef.current.publish({
-      destination: `/app/projects/${id}/chat.send`,
-      body: JSON.stringify({ content: input.trim() }),
-    })
-    setInput('')
+    if (sendMessage(input)) setInput('')
   }
 
   return (
