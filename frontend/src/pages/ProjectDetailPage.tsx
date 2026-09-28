@@ -268,7 +268,7 @@ function WorkspaceRail({ id, side }: { id: number; side: 'left' | 'right' }) {
               { to: `/projects/${id}/calendar`, label: '일정 확인' },
               { to: `/projects/${id}/documents`, label: '문서 모아보기' },
               { to: `/projects/${id}/files`, label: '파일 모아보기' },
-              { to: `/projects/${id}/members`, label: '팀원 관리' },
+              { to: `/projects/${id}/members`, label: '팀원 확인' },
             ].map((link) => (
               <Link key={link.to} to={link.to} className="flex items-center justify-between rounded-lg px-2 py-2 text-xs font-medium text-slate-600 transition hover:bg-primary-50 hover:text-primary-700">
                 {link.label}
