@@ -1,5 +1,6 @@
 package com.teamflow.chat.config;
 
+import com.teamflow.auth.config.CorsProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -13,14 +14,19 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final StompAuthChannelInterceptor stompAuthChannelInterceptor;
+    private final CorsProperties corsProperties;
 
-    public WebSocketConfig(StompAuthChannelInterceptor stompAuthChannelInterceptor) {
+    public WebSocketConfig(StompAuthChannelInterceptor stompAuthChannelInterceptor, CorsProperties corsProperties) {
         this.stompAuthChannelInterceptor = stompAuthChannelInterceptor;
+        this.corsProperties = corsProperties;
     }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/ws/chat").setAllowedOriginPatterns("*");
+        var endpoint = registry.addEndpoint("/ws/chat");
+        if (!corsProperties.allowedOrigins().isEmpty()) {
+            endpoint.setAllowedOrigins(corsProperties.allowedOrigins().toArray(String[]::new));
+        }
     }
 
     @Override

@@ -20,9 +20,9 @@ import org.springframework.web.filter.OncePerRequestFilter;
  */
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    // EventSource can't set custom headers, so 10-realtime-architecture.md §1.1 has the SSE
-    // subscribe endpoint carry the token as a query param instead — accepted only for this
-    // one path, to avoid widening where a token can leak via URLs/logs/referrers.
+    // Keep the legacy SSE query-token fallback scoped to this endpoint for older clients.
+    // The current frontend uses Authorization headers via fetch streaming, so new tokens are
+    // no longer placed in URLs, browser history, proxy logs, or referrer headers.
     private static final String SSE_SUBSCRIBE_PATH = "/api/notifications/subscribe";
 
     private final JwtTokenProvider jwtTokenProvider;

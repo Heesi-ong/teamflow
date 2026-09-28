@@ -119,6 +119,7 @@ export function ProjectSettingsPage() {
   const meQuery = useQuery({ queryKey: ['me'], queryFn: () => authApi.me().then((response) => response.data) })
   const currentRole = membersQuery.data?.find((member) => member.userId === meQuery.data?.id)?.role
   const isLoading = projectQuery.isLoading || membersQuery.isLoading || meQuery.isLoading
+  const permissionQueryError = membersQuery.isError || meQuery.isError
   const canEdit = currentRole === 'OWNER' || currentRole === 'ADMIN'
 
   return (
@@ -133,7 +134,22 @@ export function ProjectSettingsPage() {
 
       {isLoading && <p className="mt-6 text-sm text-slate-500">불러오는 중...</p>}
       {projectQuery.isError && <p className="mt-6 text-sm text-red-500">프로젝트 정보를 불러오지 못했습니다.</p>}
-      {projectQuery.data && !isLoading && (
+      {permissionQueryError && !isLoading && (
+        <section role="alert" className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+          <p>프로젝트 권한 정보를 확인하지 못했습니다.</p>
+          <button
+            type="button"
+            onClick={() => {
+              void membersQuery.refetch()
+              void meQuery.refetch()
+            }}
+            className="mt-2 font-semibold underline"
+          >
+            다시 시도
+          </button>
+        </section>
+      )}
+      {projectQuery.data && !isLoading && !permissionQueryError && (
         canEdit && currentRole
           ? <div className="mt-6"><ProjectSettingsForm key={projectQuery.data.updatedAt} project={projectQuery.data} role={currentRole} /></div>
           : <section className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">프로젝트 설정은 관리자 또는 소유자만 변경할 수 있습니다.</section>

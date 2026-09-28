@@ -22,15 +22,60 @@ export function NotificationBell() {
     enabled: !!accessToken,
   })
 
-  // 10-realtime-architecture.md §1.1: EventSource는 커스텀 헤더를 지원하지 않아 Access Token을
-  // 쿼리 파라미터로 전달한다. accessToken이 바뀌면(재발급 등) 연결을 다시 맺는다.
+  // EventSource는 커스텀 Authorization 헤더를 지원하지 않으므로 fetch 스트림으로
+  // 인증 헤더를 직접 전달한다. 토큰을 URL query parameter에 넣지 않아 서버 로그나
+  // 프록시 기록으로 토큰이 유출될 가능성을 줄인다.
   useEffect(() => {
     if (!accessToken) return
-    const source = new EventSource(`${API_BASE_URL}/api/notifications/subscribe?token=${accessToken}`)
-    source.addEventListener('notification', () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] })
-    })
-    return () => source.close()
+    let stopped = false
+    let retryTimer: number | undefined
+    let activeController: AbortController | null = null
+
+    async function connect() {
+      if (stopped) return
+      const controller = new AbortController()
+      activeController = controller
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/notifications/subscribe`, {
+          headers: {
+            Accept: 'text/event-stream',
+            Authorization: `Bearer ${accessToken}`,
+          },
+          credentials: 'include',
+          signal: controller.signal,
+        })
+        if (!response.ok || !response.body) throw new Error(`SSE connection failed: ${response.status}`)
+
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+        while (!stopped) {
+          const { value, done } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const events = buffer.split(/\r?\n\r?\n/)
+          buffer = events.pop() ?? ''
+          // SSE 스펙은 "field:value"의 콜론 뒤 공백 하나를 허용만 할 뿐 요구하지 않는다 — Spring의
+          // SseEmitter는 공백 없이 "event:notification"으로 보낸다. 정규식으로 둘 다 받아들인다.
+          if (events.some((event) => event.split(/\r?\n/).some((line) => /^event:\s?notification$/.test(line)))) {
+            queryClient.invalidateQueries({ queryKey: ['notifications'] })
+            queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] })
+          }
+        }
+      } catch {
+        // Abort is expected during route changes or logout. Other failures retry below.
+      } finally {
+        if (activeController === controller) activeController = null
+        if (!stopped) retryTimer = window.setTimeout(() => void connect(), 2000)
+      }
+    }
+
+    void connect()
+    return () => {
+      stopped = true
+      if (retryTimer !== undefined) window.clearTimeout(retryTimer)
+      activeController?.abort()
+    }
   }, [accessToken, queryClient])
 
   const markReadMutation = useMutation({
